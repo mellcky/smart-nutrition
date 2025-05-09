@@ -9,7 +9,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import java.io.FileInputStream;
+
+import java.io.InputStream;
 
 @SpringBootApplication
 public class ApiApplication {
@@ -21,38 +22,41 @@ public class ApiApplication {
 	@Bean
 	CommandLineRunner loadData(FoodItemRepository repository) {
 		return args -> {
-			FileInputStream fis = new FileInputStream("src/main/resources/static/food-data.xlsx");
-			Workbook workbook = new XSSFWorkbook(fis);
-			Sheet sheet = workbook.getSheetAt(0);
+			try (InputStream fis = getClass().getClassLoader().getResourceAsStream("static/food-data.xlsx")) {
+                assert fis != null;
+                try (Workbook workbook = new XSSFWorkbook(fis)) {
 
-			for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-				Row row = sheet.getRow(i);
-				FoodItem item = new FoodItem();
+                    Sheet sheet = workbook.getSheetAt(0);
 
-				item.setFoodCode(row.getCell(0).getStringCellValue());
-				item.setFoodGroup(row.getCell(1).getStringCellValue());
-				item.setNumber((int) row.getCell(2).getNumericCellValue());
-				item.setVitamins(row.getCell(3).getStringCellValue());
+                    for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                        Row row = sheet.getRow(i);
+                        FoodItem item = new FoodItem();
 
-				item.setVita(getDouble(row, 4));
-				item.setAVita(getDouble(row, 5));
-				item.setVitd(getDouble(row, 6));
-				item.setVite(getDouble(row, 7));
-				item.setVitc(getDouble(row, 8));
-				item.setThia(getDouble(row, 9));
-				item.setRibf(getDouble(row, 10));
-				item.setNia(getDouble(row, 11));
-				item.setVitB6(getDouble(row, 12));
-				item.setFol(getDouble(row, 13));
-				item.setVitB12(getDouble(row, 14));
-				item.setPant(getDouble(row, 15));
+                        item.setFoodCode(row.getCell(0).getStringCellValue());
+                        item.setFoodGroup(row.getCell(1).getStringCellValue());
+                        item.setNumber((int) row.getCell(2).getNumericCellValue());
+                        item.setVitamins(row.getCell(3).getStringCellValue());
 
-				repository.save(item);
-			}
+                        item.setVita(getDouble(row, 4));
+                        item.setAVita(getDouble(row, 5));
+                        item.setVitd(getDouble(row, 6));
+                        item.setVite(getDouble(row, 7));
+                        item.setVitc(getDouble(row, 8));
+                        item.setThia(getDouble(row, 9));
+                        item.setRibf(getDouble(row, 10));
+                        item.setNia(getDouble(row, 11));
+                        item.setVitB6(getDouble(row, 12));
+                        item.setFol(getDouble(row, 13));
+                        item.setVitB12(getDouble(row, 14));
+                        item.setPant(getDouble(row, 15));
 
-			workbook.close();
+                        repository.save(item);
+                    }
+                }
+            }
 		};
 	}
+
 
 	private Double getDouble(Row row, int colIndex) {
 		Cell cell = row.getCell(colIndex);
