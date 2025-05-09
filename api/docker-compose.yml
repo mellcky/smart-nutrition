@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mdsoln
+      POSTGRES_DB: donation
+    ports:
+      - "5432:5432"
+    networks:
+      - backend_network
+
+  backend:
+    image: mdsoln/donation-api:latest
+    container_name: donation-api
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/donation
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: mdsoln
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - backend_network
+
+networks:
+  backend_network:

@@ -1,0 +1,10 @@
+spring:
+  application:
+      name: smart-nutritional-tool-api
+  profiles:
+    active: dev
+
+logging:
+  level:
+    root: info
+    com.smartnutritionaltool.api: debug
