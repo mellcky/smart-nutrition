@@ -1,11 +1,11 @@
 spring:
   application:
-    name: donor-api
+    name: smart-nutritional-tool-api
   profiles:
     active: docker
 
   datasource:
-    url: jdbc:postgresql://db:5432/donation
+    url: jdbc:postgresql://db:5432/nutrition
     username: postgres
     password: mdsoln
     driver-class-name: org.postgresql.Driver
