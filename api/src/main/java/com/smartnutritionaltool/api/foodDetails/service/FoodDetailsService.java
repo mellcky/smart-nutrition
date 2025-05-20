@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface FoodDetailsService {
     List<FoodItem> getFoodDetailsByFoodName(String foodName);
+    FoodItem getFoodDetailByFoodName(String foodName);
 }

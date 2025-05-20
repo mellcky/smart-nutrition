@@ -19,12 +19,25 @@ public class FoodDetailsController {
     private final FoodDetailsServiceImpl foodDetailsService;
 
     @GetMapping("/{food-name}")
-    public ResponseEntity<List<FoodItem>>  getFoodDetails(@PathVariable("food-name") String foodName) {
+    public ResponseEntity<List<FoodItem>> getFoodDetails(@PathVariable("food-name") String foodName) {
         if (foodName == null) {
             throw new IllegalArgumentException("foodDetails cannot be null");
         }
 
         final List<FoodItem> foodItem = foodDetailsService.getFoodDetailsByFoodName(foodName);
+        if (foodItem == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(foodItem);
+    }
+
+    @GetMapping("/single/{food-name}")
+    public ResponseEntity<FoodItem> getFoodDetail(@PathVariable("food-name") String foodName) {
+        if (foodName == null) {
+            throw new IllegalArgumentException("foodDetails cannot be null");
+        }
+
+        final FoodItem foodItem = foodDetailsService.getFoodDetailByFoodName(foodName);
         if (foodItem == null) {
             return ResponseEntity.notFound().build();
         }

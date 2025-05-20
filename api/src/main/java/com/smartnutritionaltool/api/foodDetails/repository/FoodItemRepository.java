@@ -9,7 +9,7 @@ import java.util.List;
 @Repository
 public interface FoodItemRepository extends JpaRepository<FoodItem, Long> {
 
-    FoodItem findByVitaminsIgnoreCase(String vitamins);
-    List<FoodItem> findAllByVitaminsIgnoreCase(String vitamins);
+    FoodItem findByFoodItemIgnoreCase(String foodName);
+    List<FoodItem> findAllByFoodItemIgnoreCase(String foodName);
 
 }
