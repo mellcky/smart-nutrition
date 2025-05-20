@@ -32,23 +32,28 @@ public class ApiApplication {
                         Row row = sheet.getRow(i);
                         FoodItem item = new FoodItem();
 
-                        item.setFoodCode(row.getCell(0).getStringCellValue());
-                        item.setFoodGroup(row.getCell(1).getStringCellValue());
-                        item.setNumber((int) row.getCell(2).getNumericCellValue());
-                        item.setVitamins(row.getCell(3).getStringCellValue());
-
-                        item.setVita(getDouble(row, 4));
-                        item.setAVita(getDouble(row, 5));
-                        item.setVitd(getDouble(row, 6));
-                        item.setVite(getDouble(row, 7));
-                        item.setVitc(getDouble(row, 8));
-                        item.setThia(getDouble(row, 9));
-                        item.setRibf(getDouble(row, 10));
-                        item.setNia(getDouble(row, 11));
-                        item.setVitB6(getDouble(row, 12));
-                        item.setFol(getDouble(row, 13));
-                        item.setVitB12(getDouble(row, 14));
-                        item.setPant(getDouble(row, 15));
+                        item.setFoodItem(row.getCell(0).getStringCellValue());
+                        item.setFoodType(row.getCell(1).getStringCellValue());
+                        item.setCalories(getDouble(row, 2));
+                        item.setProtein(getDouble(row, 3));
+                        item.setFats(getDouble(row, 4));
+                        item.setCarbs(getDouble(row, 5));
+                        item.setChorestrol(getDouble(row, 6));
+                        item.setSugar(getDouble(row, 7));
+                        item.setVitaminA(getDouble(row, 8));
+                        item.setVitaminD(getDouble(row, 9));
+                        item.setVitaminC(getDouble(row, 10));
+                        item.setVitaminE(getDouble(row, 11));
+                        item.setVitaminB6(getDouble(row, 12));
+                        item.setVitaminB12(getDouble(row, 13));
+                        item.setCa(getDouble(row, 14));
+                        item.setMg(getDouble(row, 15));
+                        item.setK(getDouble(row, 16));
+                        item.setFe(getDouble(row, 17));
+                        item.setZn(getDouble(row, 18));
+                        item.setSaturatedFat(getDouble(row, 19));
+                        item.setFiber(getDouble(row, 20));
+                        item.setSodium(getDouble(row, 21));
 
                         repository.save(item);
                     }

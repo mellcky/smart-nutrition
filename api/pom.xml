@@ -12,7 +12,7 @@
 	<artifactId>api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>api</name>
-	<description>APIs for the Smart Nutrition Tool that integrates with AI based tool</description>
+	<description>APIs for the Smart Nutrition Tool that integrates with AI-based tool</description>
 	<url/>
 	<licenses>
 		<license/>
