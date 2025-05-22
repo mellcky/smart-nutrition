@@ -32,8 +32,8 @@ public class ApiApplication {
                         Row row = sheet.getRow(i);
                         FoodItem item = new FoodItem();
 
-                        item.setFoodItem(row.getCell(0).getStringCellValue());
-                        item.setFoodType(row.getCell(1).getStringCellValue());
+                        item.setFoodItem(getString(row, 0));
+                        item.setFoodType(getString(row, 1));
                         item.setCalories(getDouble(row, 2));
                         item.setProtein(getDouble(row, 3));
                         item.setFats(getDouble(row, 4));
@@ -66,6 +66,25 @@ public class ApiApplication {
 	private Double getDouble(Row row, int colIndex) {
 		Cell cell = row.getCell(colIndex);
 		return (cell != null && cell.getCellType() == CellType.NUMERIC) ? cell.getNumericCellValue() : 0.0;
+	}
+
+	private String getString(Row row, int colIndex) {
+		Cell cell = row.getCell(colIndex);
+		if (cell == null) {
+			return "";
+		}
+		switch (cell.getCellType()) {
+			case NUMERIC:
+				return String.valueOf(cell.getNumericCellValue());
+			case STRING:
+				return cell.getStringCellValue();
+			case BOOLEAN:
+				return String.valueOf(cell.getBooleanCellValue());
+			case FORMULA:
+				return cell.getCellFormula();
+			default:
+				return "";
+		}
 	}
 
 }
