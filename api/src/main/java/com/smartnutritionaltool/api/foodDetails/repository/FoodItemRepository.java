@@ -12,4 +12,7 @@ public interface FoodItemRepository extends JpaRepository<FoodItem, Long> {
     FoodItem findByFoodItemIgnoreCase(String foodName);
     List<FoodItem> findAllByFoodItemIgnoreCase(String foodName);
 
+    List<FoodItem> findAllByFoodTypeIgnoreCase(String foodName);
+
+    FoodItem findByFoodTypeIgnoreCase(String foodName);
 }

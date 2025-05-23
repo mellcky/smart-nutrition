@@ -15,12 +15,12 @@ public class FoodDetailsServiceImpl implements FoodDetailsService{
 
     @Override
     public List<FoodItem> getFoodDetailsByFoodName(String foodName) {
-        return foodItemRepository.findAllByFoodItemIgnoreCase(foodName);
+        return foodItemRepository.findAllByFoodTypeIgnoreCase(foodName);
     }
 
     @Override
     public FoodItem getFoodDetailByFoodName(String foodName) {
-        return foodItemRepository.findByFoodItemIgnoreCase(foodName);
+        return foodItemRepository.findByFoodTypeIgnoreCase(foodName);
     }
 
 }
