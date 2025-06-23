@@ -13,7 +13,7 @@ class SummaryScreen extends StatefulWidget {
 class _SummaryScreenState extends State<SummaryScreen> {
   int _currentIndex = -1;
   List<bool> _showTickList = [];
-  List<Map<String, String>> summaryData = [];
+  List<Map<String, dynamic>> summaryData = [];
   bool _analysisDone = false;
 
   @override
@@ -29,40 +29,44 @@ class _SummaryScreenState extends State<SummaryScreen> {
         "label": "Gender",
         "value":
             "${userProfile.gender ?? 'Not provided'} ${_getEmojiForGender(userProfile.gender ?? '')}",
+        "type": "text",
       },
       {
         "label": "Age",
         "value": "${userProfile.age?.toString() ?? 'Not provided'} 🎂",
+        "type": "text",
       },
       {
         "label": "Height",
         "value":
             "${userProfile.height?.toStringAsFixed(1) ?? 'Not provided'} cm 📏",
+        "type": "text",
       },
       {
         "label": "Weight",
         "value":
             "${userProfile.weight?.toStringAsFixed(1) ?? 'Not provided'} kg ⚖️",
+        "type": "text",
       },
       {
         "label": "Activity Level",
         "value": "${userProfile.activityLevel ?? 'Not provided'} 🏃",
+        "type": "text",
       },
       {
         "label": "Dietary Restrictions",
-        "value":
-            (userProfile.dietaryRestrictions != null &&
-                    userProfile.dietaryRestrictions!.isNotEmpty)
-                ? userProfile.dietaryRestrictions!.join(", ")
-                : "None 🚫",
+        "value": userProfile.dietaryRestrictions ?? [],
+        "type": "list",
       },
       {
         "label": "Health Conditions",
-        "value":
-            (userProfile.healthConditions != null &&
-                    userProfile.healthConditions!.isNotEmpty)
-                ? userProfile.healthConditions!.join(", ")
-                : "None 💪",
+        "value": userProfile.healthConditions ?? [],
+        "type": "list",
+      },
+      {
+        "label": "Dietary Goals",
+        "value": userProfile.dietaryGoals ?? [],
+        "type": "list",
       },
     ];
 
@@ -88,16 +92,25 @@ class _SummaryScreenState extends State<SummaryScreen> {
       setState(() {
         _currentIndex = i;
       });
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(milliseconds: 600));
       setState(() {
         _showTickList[i] = true;
       });
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 200));
     }
 
     setState(() {
       _analysisDone = true;
     });
+  }
+
+  void _handleEdit(String label) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Navigate to edit $label screen..."),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   @override
@@ -113,40 +126,91 @@ class _SummaryScreenState extends State<SummaryScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // ✅ Header Message
               Text(
                 _analysisDone
-                    ? "Analysis Done ✅"
+                    ? "Confirmed ✅"
                     : _currentIndex >= 0
-                    ? "Analyzing ${summaryData[_currentIndex]['label']}..."
-                    : "Initializing Analysis...",
+                    ? "Confirming ${summaryData[_currentIndex]['label']}..."
+                    : "Initializing Confirmation...",
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.green,
                 ),
               ),
-
               const SizedBox(height: 12),
 
-              // 📝 Summary values
+              // 🔁 Dynamic Summary List
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: List.generate(summaryData.length, (index) {
+                    final item = summaryData[index];
                     final isVisible = index <= _currentIndex;
-                    return isVisible
-                        ? Row(
+
+                    if (!isVisible) return const SizedBox.shrink();
+
+                    return Column(
+                      children: [
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Flexible(
-                              child: Text(
-                                "${summaryData[index]['label']}: ${summaryData[index]['value']}",
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    item['label'],
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  item['type'] == 'list'
+                                      ? Wrap(
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        alignment: WrapAlignment.center,
+                                        children:
+                                            (item['value'] as List).isNotEmpty
+                                                ? (item['value'] as List)
+                                                    .map<Widget>((value) {
+                                                      return Chip(
+                                                        label: Text(
+                                                          value.toString(),
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 12,
+                                                              ),
+                                                        ),
+                                                        backgroundColor:
+                                                            Colors.purple[50],
+                                                      );
+                                                    })
+                                                    .toList()
+                                                : [
+                                                  Chip(
+                                                    label: Text(
+                                                      'None',
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    backgroundColor:
+                                                        Colors.grey[200],
+                                                  ),
+                                                ],
+                                      )
+                                      : Text(
+                                        item['value'],
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                ],
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -163,30 +227,34 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                     strokeWidth: 2,
                                   ),
                                 ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 20),
+                              color: Colors.deepPurple,
+                              onPressed:
+                                  () =>
+                                      _analysisDone
+                                          ? _handleEdit(item['label'])
+                                          : null,
+                            ),
                           ],
-                        )
-                        : const SizedBox.shrink();
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    );
                   }),
                 ),
               ),
 
-              // 📊 Progress bar and confirm button
+              // 📊 Progress + Confirm
               Column(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      20,
-                    ), // Add rounded corners
+                    borderRadius: BorderRadius.circular(20),
                     child: LinearProgressIndicator(
                       value: (_currentIndex + 1) / summaryData.length,
                       minHeight: 10,
                       backgroundColor: Colors.grey[300],
-                      color: const Color.fromARGB(
-                        255,
-                        126,
-                        75,
-                        146,
-                      ), // Purple color
+                      color: const Color.fromARGB(255, 126, 75, 146),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -205,11 +273,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       onPressed:
                           _analysisDone
                               ? () {
-                                // Navigate to main app interface here
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => MainEntryScreen(),
+                                    builder: (_) => const MainEntryScreen(),
                                   ),
                                 );
                               }

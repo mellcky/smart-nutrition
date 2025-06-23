@@ -1,212 +1,339 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '/providers/userprofile_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  static const List<String> allHealthConditions = [
+    'Diabetes',
+    'Hypertension',
+    'Cardiovascular Disease',
+    'Asthma',
+    'Allergies',
+    'Kidney Disease',
+    'Anemia',
+  ];
+
+  static const List<String> allDietaryRestrictions = [
+    'Gluten-Free',
+    'Lactose-Free',
+    'Vegan',
+    'Vegetarian',
+    'Nut-Free',
+    'Halal',
+    'Kosher',
+    'Pescatarian',
+  ];
+
+  static const List<String> allDietaryGoals = [
+    'Weight Loss',
+    'Muscle Gain',
+    'Maintenance',
+    'Improve Energy',
+    'Better Sleep',
+    'Manage Diabetes',
+    'Lower Cholesterol',
+    'Heart Health',
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final userProfileProvider = Provider.of<UserProfileProvider>(context);
+    final profile = userProfileProvider.profile;
+
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: const Text('Settings'),
-        centerTitle: true,
-        backgroundColor: Colors.white,
+        title: const Text('My Profile'),
         elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // Account Settings Section
-          const Text(
-            'Account Settings',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Name'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('Cressy', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit name screen (placeholder)
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.calendar_today),
-            title: const Text('Age'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('23', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit age screen (placeholder)
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.wc),
-            title: const Text('Gender'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('Female', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit gender screen (placeholder)
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.height),
-            title: const Text('Height'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('131 cm', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit height screen (placeholder)
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.fitness_center),
-            title: const Text('Weight'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('63.7', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit weight screen (placeholder)
-            },
-          ),
-          const SizedBox(height: 16),
-          // Diet Information Section
-          const Text(
-            'Diet Information',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          ListTile(
-            leading: const Icon(Icons.directions_run),
-            title: const Text('Activity Level'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('Moderate Active', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit activity level screen (placeholder)
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.warning),
-            title: const Text('Restrictions'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('None', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit restrictions screen (placeholder)
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.favorite),
-            title: const Text('Health Conditions'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('None', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit health conditions screen (placeholder)
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.medical_services),
-            title: const Text('Medical History (optional)'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('None', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit medical history screen (placeholder)
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.alarm),
-            title: const Text('Reminders'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('None', style: TextStyle(color: Colors.grey)),
-                Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () {
-              // Navigate to edit reminders screen (placeholder)
-            },
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calculate),
             onPressed: () {
-              // Handle update action (placeholder)
+              userProfileProvider.updateCalorieGoal();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Calorie goal updated!')),
+              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Update'),
-          ),
-          const SizedBox(height: 16),
-          // Application Section
-          const Text(
-            'Application',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          ListTile(
-            leading: const Icon(Icons.contact_support),
-            title: const Text('Contact Us'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // Navigate to contact us screen (placeholder)
-            },
-          ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () {
-              // Handle log out action (placeholder)
-            },
-            child: const Text('Log out', style: TextStyle(color: Colors.red)),
+            tooltip: 'Calculate Calorie Goal',
           ),
         ],
       ),
+      body: ListView(
+        padding: const EdgeInsets.all(8.0),
+        children: [
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.grey.shade300,
+            child: Icon(Icons.person, size: 50, color: Colors.grey.shade700),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              (profile != null && profile.name?.isNotEmpty == true)
+                  ? profile.name!
+                  : 'No Name',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (profile?.totalCaloriesGoal != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Center(
+                child: Text(
+                  'Daily Calories: ${profile!.totalCaloriesGoal!.round()} kcal',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.green[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 24),
+
+          // Now with dividers after each item
+          _buildProfileItemWithDivider(context, 'Name', profile?.name, () {
+            _editField(context, 'Name', profile?.name, (val) {
+              userProfileProvider.updateName(val);
+              userProfileProvider.saveUserProfile();
+            });
+          }),
+          _buildProfileItemWithDivider(context, 'Gender', profile?.gender, () {
+            _editField(context, 'Gender', profile?.gender, (val) {
+              userProfileProvider.updateGender(val);
+              userProfileProvider.saveUserProfile();
+            });
+          }),
+          _buildProfileItemWithDivider(
+            context,
+            'Age',
+            profile?.age?.toString(),
+            () {
+              _editField(context, 'Age', profile?.age?.toString(), (val) {
+                final age = int.tryParse(val);
+                if (age != null) {
+                  userProfileProvider.updateAge(age);
+                  userProfileProvider.saveUserProfile();
+                }
+              });
+            },
+          ),
+          _buildProfileItemWithDivider(
+            context,
+            'Height (cm)',
+            profile?.height?.toString(),
+            () {
+              _editField(context, 'Height (cm)', profile?.height?.toString(), (
+                val,
+              ) {
+                final height = double.tryParse(val);
+                if (height != null) {
+                  userProfileProvider.updateHeight(height);
+                  userProfileProvider.saveUserProfile();
+                }
+              });
+            },
+          ),
+          _buildProfileItemWithDivider(
+            context,
+            'Weight (kg)',
+            profile?.weight?.toString(),
+            () {
+              _editField(context, 'Weight (kg)', profile?.weight?.toString(), (
+                val,
+              ) {
+                final weight = double.tryParse(val);
+                if (weight != null) {
+                  userProfileProvider.updateWeight(weight);
+                  userProfileProvider.saveUserProfile();
+                }
+              });
+            },
+          ),
+          _buildProfileItemWithDivider(
+            context,
+            'Activity Level',
+            profile?.activityLevel,
+            () {
+              _editField(context, 'Activity Level', profile?.activityLevel, (
+                val,
+              ) {
+                userProfileProvider.updateActivityLevel(val);
+                userProfileProvider.saveUserProfile();
+              });
+            },
+          ),
+
+          _buildProfileItemWithDivider(
+            context,
+            'Health Conditions',
+            (profile?.healthConditions?.isNotEmpty ?? false)
+                ? profile!.healthConditions?.join(', ')
+                : 'None',
+            () async {
+              final selected = await _showMultiSelectDialog(
+                context,
+                'Select Health Conditions',
+                allHealthConditions,
+                profile?.healthConditions ?? [],
+              );
+              if (selected != null) {
+                userProfileProvider.updateHealthConditions(selected);
+                userProfileProvider.saveUserProfile();
+              }
+            },
+          ),
+          _buildProfileItemWithDivider(
+            context,
+            'Dietary Restrictions',
+            (profile?.dietaryRestrictions?.isNotEmpty ?? false)
+                ? profile!.dietaryRestrictions?.join(', ')
+                : 'None',
+            () async {
+              final selected = await _showMultiSelectDialog(
+                context,
+                'Select Dietary Restrictions',
+                allDietaryRestrictions,
+                profile?.dietaryRestrictions ?? [],
+              );
+              if (selected != null) {
+                userProfileProvider.updateDietRestrictions(selected);
+                userProfileProvider.saveUserProfile();
+              }
+            },
+          ),
+          _buildProfileItemWithDivider(
+            context,
+            'Dietary Goals',
+            (profile?.dietaryGoals?.isNotEmpty ?? false)
+                ? profile!.dietaryGoals?.join(', ')
+                : 'None',
+            () async {
+              final selected = await _showMultiSelectDialog(
+                context,
+                'Select Dietary Goals',
+                allDietaryGoals,
+                profile?.dietaryGoals ?? [],
+              );
+              if (selected != null) {
+                userProfileProvider.setDietaryGoals(selected);
+                userProfileProvider.saveUserProfile();
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileItemWithDivider(
+    BuildContext context,
+    String label,
+    String? value,
+    VoidCallback onEdit,
+  ) {
+    return Column(
+      children: [
+        ListTile(
+          title: Text(label),
+          subtitle: Text(value ?? 'Not set'),
+          trailing: const Icon(Icons.edit),
+          onTap: onEdit,
+        ),
+        const Divider(height: 1),
+      ],
+    );
+  }
+
+  void _editField(
+    BuildContext context,
+    String label,
+    String? initialValue,
+    Function(String) onSave,
+  ) {
+    final controller = TextEditingController(text: initialValue ?? '');
+    showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: Text('Edit $label'),
+            content: TextField(
+              controller: controller,
+              decoration: InputDecoration(labelText: label),
+              keyboardType:
+                  (label == 'Age' ||
+                          label.contains('Height') ||
+                          label.contains('Weight'))
+                      ? TextInputType.number
+                      : TextInputType.text,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  onSave(controller.text.trim());
+                  Navigator.pop(context);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<List<String>?> _showMultiSelectDialog(
+    BuildContext context,
+    String title,
+    List<String> allOptions,
+    List<String> initiallySelected,
+  ) {
+    final selectedValues = List<String>.from(initiallySelected);
+
+    return showDialog<List<String>>(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: Text(title),
+            content: StatefulBuilder(
+              builder:
+                  (context, setState) => SingleChildScrollView(
+                    child: ListBody(
+                      children:
+                          allOptions.map((option) {
+                            final isSelected = selectedValues.contains(option);
+                            return CheckboxListTile(
+                              value: isSelected,
+                              title: Text(option),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              onChanged: (checked) {
+                                setState(() {
+                                  if (checked == true) {
+                                    selectedValues.add(option);
+                                  } else {
+                                    selectedValues.remove(option);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                    ),
+                  ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, null),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, selectedValues),
+                child: const Text('Save'),
+              ),
+            ],
+          ),
     );
   }
 }

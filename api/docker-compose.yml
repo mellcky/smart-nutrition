@@ -14,7 +14,7 @@ services:
       - backend_network
 
   backend:
-    build: .
+    #build: .
     image: mdsoln/smart-nutrition-tool-apis:latest
     container_name: smart-nutrition-tool-apis
     depends_on:
@@ -25,7 +25,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/nutrition
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: mdsoln
-      SPRING_PROFILES_ACTIVE: docker
+      #SPRING_PROFILES_ACTIVE: docker
     networks:
       - backend_network
 

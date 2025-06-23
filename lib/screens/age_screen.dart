@@ -1,149 +1,9 @@
-// import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
-// import '/providers/on_boarding_provider.dart';
-// import '/providers/userprofile_provider.dart';
-// import '/widgets/progress_bar.dart';
-// import '/widgets/back_button_wrapper.dart';
-// import '/screens/bodymeasurement_screen.dart';
-
-// class AgeInputPage extends StatefulWidget {
-//   const AgeInputPage({super.key});
-
-//   @override
-//   State<AgeInputPage> createState() => _AgeInputPageState();
-// }
-
-// class _AgeInputPageState extends State<AgeInputPage> {
-//   final TextEditingController _ageController = TextEditingController();
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     // Pre-fill if needed in future
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final onboardingProvider = Provider.of<OnboardingProvider>(context);
-//     onboardingProvider.setProgress(0.3);
-
-//     return Scaffold(
-//       appBar: AppBar(toolbarHeight: 0, automaticallyImplyLeading: false),
-//       // backgroundColor: Colors.white,
-//       body: Column(
-//         children: [
-//           TopProgressBar(),
-//           BackIconWrapper(),
-//           SizedBox(
-//             width: double.infinity,
-//             height: 130,
-//             child: Stack(
-//               clipBehavior: Clip.none,
-//               alignment: Alignment.center,
-//               children: [
-//                 Positioned(
-//                   top: -50,
-//                   child: CircleAvatar(
-//                     radius: 50,
-//                     backgroundImage: AssetImage('assets/images/app_logo.jpg'),
-//                     backgroundColor: Colors.transparent,
-//                   ),
-//                 ),
-//                 Positioned(
-//                   top: 60,
-//                   child: const Text(
-//                     "Basic Information",
-//                     textAlign: TextAlign.center,
-//                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//           const SizedBox(height: 40),
-//           Row(
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             children: const [
-//               Icon(Icons.cake, color: Color.fromARGB(255, 18, 18, 18)),
-//               SizedBox(width: 8),
-//               Text(
-//                 "What’s your age?",
-//                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-//               ),
-//             ],
-//           ),
-//           const SizedBox(height: 32),
-//           Center(
-//             child: SizedBox(
-//               width: 150,
-//               child: TextField(
-//                 controller: _ageController,
-//                 textAlign: TextAlign.center,
-//                 keyboardType: TextInputType.number,
-//                 decoration: InputDecoration(
-//                   hintText: "Enter your age",
-//                   border: OutlineInputBorder(
-//                     borderRadius: BorderRadius.circular(10),
-//                   ),
-//                 ),
-//               ),
-//             ),
-//           ),
-//           Spacer(),
-//           Padding(
-//             padding: const EdgeInsets.only(bottom: 50),
-//             child: ElevatedButton(
-//               onPressed: () {
-//                 final ageText = _ageController.text.trim();
-//                 final age = int.tryParse(ageText);
-
-//                 if (age != null && age > 0) {
-//                   final profileProvider = Provider.of<UserProfileProvider>(
-//                     context,
-//                     listen: false,
-//                   );
-//                   profileProvider.updateAge(age);
-
-//                   Navigator.push(
-//                     context,
-//                     MaterialPageRoute(
-//                       builder: (context) => BodyMeasurementScreen(),
-//                     ),
-//                   );
-//                 } else {
-//                   ScaffoldMessenger.of(context).showSnackBar(
-//                     SnackBar(content: Text("Please enter a valid age")),
-//                   );
-//                 }
-//               },
-//               style: ElevatedButton.styleFrom(
-//                 backgroundColor: Colors.green,
-//                 padding: const EdgeInsets.symmetric(
-//                   horizontal: 40,
-//                   vertical: 12,
-//                 ),
-//                 shape: RoundedRectangleBorder(
-//                   borderRadius: BorderRadius.circular(10),
-//                 ),
-//               ),
-//               child: const Text(
-//                 "Continue",
-//                 style: TextStyle(fontSize: 16, color: Colors.white),
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '/providers/progress_provider.dart';
+
 import '/providers/userprofile_provider.dart';
-import '/widgets/progress_bar.dart';
+
 import '/screens/bodymeasurement_screen.dart';
 
 class AgeInputPage extends StatefulWidget {
@@ -154,116 +14,149 @@ class AgeInputPage extends StatefulWidget {
 }
 
 class _AgeInputPageState extends State<AgeInputPage> {
+  final int minAge = 12;
+  final int maxAge = 100;
   int _selectedAge = 25;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Progress bar at the very top
-            TopProgressBar(),
-
-            // Header with back button and centered logo
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Centered logo
-                  const CircleAvatar(
-                    radius: 70,
-                    backgroundImage: AssetImage('assets/images/app_logo.jpg'),
-                    backgroundColor: Colors.transparent,
-                  ),
-                ],
-              ),
-            ),
-
-            const Text(
-              "Basic Information",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 40),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Column(
               children: [
-                Icon(Icons.cake),
-                SizedBox(width: 8),
-                Text(
-                  "What's your age?",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            Center(
-              child: Container(
-                width: 150, // Reduced width
-                height: 250,
-                decoration: BoxDecoration(
-                  // Cyan background with slight transparency
-                  borderRadius: BorderRadius.circular(
-                    12,
-                  ), // Optional: rounded corners
-                ),
-                child: CupertinoPicker(
-                  scrollController: FixedExtentScrollController(
-                    initialItem: _selectedAge - 1,
-                  ),
-                  itemExtent: 40,
-                  onSelectedItemChanged: (index) {
-                    setState(() {
-                      _selectedAge = index + 1;
-                    });
-                  },
-                  children: List.generate(
-                    100,
-                    (index) => Center(
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.green.shade100,
+                    ),
+                    child: Center(
                       child: Text(
-                        "${index + 1}",
-                        style: const TextStyle(
+                        'Diet App',
+                        style: TextStyle(
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                          color: Colors.green.shade800,
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 50),
-              child: ElevatedButton(
-                onPressed: () {
-                  Provider.of<UserProfileProvider>(
-                    context,
-                    listen: false,
-                  ).updateAge(_selectedAge);
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const BodyMeasurementScreen(),
+                const Text(
+                  "Basic Information",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 40),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.cake),
+                    SizedBox(width: 8),
+                    Text(
+                      "What's your age?",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  );
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Show selected age
+                Text(
+                  "Age: $_selectedAge",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                Center(
+                  child: Container(
+                    width: 150,
+                    height: 250,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: CupertinoPicker(
+                      scrollController: FixedExtentScrollController(
+                        initialItem: _selectedAge - minAge,
+                      ),
+                      itemExtent: 40,
+                      onSelectedItemChanged: (index) {
+                        setState(() {
+                          _selectedAge = index + minAge;
+                        });
+                      },
+                      children: List.generate(
+                        maxAge - minAge + 1,
+                        (index) => Center(
+                          child: Text(
+                            "${index + minAge}",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const Spacer(),
+
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 50),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Provider.of<UserProfileProvider>(
+                        context,
+                        listen: false,
+                      ).updateAge(_selectedAge);
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BodyMeasurementScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      "Continue",
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // Positioned Back Arrow
+            Positioned(
+              top: 20,
+              left: 16,
+              child: IconButton(
+                icon: Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () {
+                  Navigator.pop(context); // This pops the current screen
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  "Continue",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
               ),
             ),
           ],

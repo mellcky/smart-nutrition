@@ -1,7 +1,6 @@
 import 'package:diet_app/screens/activity_screen.dart';
 import 'package:flutter/material.dart';
-import '/widgets/back_button_wrapper.dart';
-import '/widgets/progress_bar.dart';
+
 import 'package:provider/provider.dart';
 import '/providers/userprofile_provider.dart';
 
@@ -86,37 +85,45 @@ class BodyMeasurementScreenState extends State<BodyMeasurementScreen> {
                 child: IntrinsicHeight(
                   child: Column(
                     children: [
-                      TopProgressBar(),
-                      BackIconWrapper(),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 130,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.center,
-                          children: [
-                            Positioned(
-                              top: -50,
-                              child: CircleAvatar(
-                                radius: 50,
-                                backgroundImage: AssetImage(
-                                  'assets/images/app_logo.jpg',
-                                ),
-                                backgroundColor: Colors.transparent,
+                      // Custom back arrow (not in AppBar)
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10, left: 16),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                            },
+                            child: const Icon(Icons.arrow_back, size: 28),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.green.shade100,
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Diet App',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade800,
                               ),
                             ),
-                            Positioned(
-                              top: 60,
-                              child: const Text(
-                                "What is your latest height and weight",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
+                        ),
+                      ),
+                      const Text(
+                        "What's your height and weight?",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -238,12 +245,10 @@ class BodyMeasurementScreenState extends State<BodyMeasurementScreen> {
                         ],
                       ),
 
-                      Spacer(),
+                      const Spacer(),
 
                       Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: 50,
-                        ), // Bottom padding remains
+                        padding: const EdgeInsets.only(bottom: 50),
                         child: Center(
                           child: ElevatedButton(
                             onPressed: () {
@@ -269,7 +274,9 @@ class BodyMeasurementScreenState extends State<BodyMeasurementScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => ActivityLevelScreen(),
+                                    builder:
+                                        (context) =>
+                                            const ActivityLevelScreen(),
                                   ),
                                 );
                               } else {
@@ -282,7 +289,6 @@ class BodyMeasurementScreenState extends State<BodyMeasurementScreen> {
                                 );
                               }
                             },
-
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               padding: const EdgeInsets.symmetric(

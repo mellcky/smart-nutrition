@@ -1,28 +1,11 @@
 import '/screens/gender_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-// import '/onboardingclass/onboardingclass.dart';
-// import '/widgets/back_button_wrapper.dart';
-import '/providers/progress_provider.dart';
-import '/widgets/progress_bar.dart';
-import 'package:diet_app/models/user_profile.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    //progress provider
-
-    // Reset progress when building this screen
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final progressProvider = Provider.of<ProgressProvider>(
-        context,
-        listen: false,
-      );
-      // Reset progress to 0.1 on Welcome screen load
-      progressProvider.setProgress(0.1);
-    });
     return Scaffold(
       appBar: AppBar(toolbarHeight: 0),
       backgroundColor: Colors.white,
@@ -30,7 +13,7 @@ class WelcomeScreen extends StatelessWidget {
         child: Column(
           children: [
             // Top content with logo and text
-            TopProgressBar(),
+
             // Small space between progress bar and logo
             SizedBox(height: 16),
 
@@ -46,12 +29,24 @@ class WelcomeScreen extends StatelessWidget {
                   //     'assets/images/app_logo.jpg',
                   //   ), // Make sure this is correctly loaded
                   // ),
-                  Container(
-                    width: 140,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('assets/images/app_logo.jpg'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.green.shade100,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Diet App',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade800,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -102,10 +97,7 @@ class WelcomeScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (context) => GenderSelectionScreen(
-                                    userProfile: UserProfile(),
-                                  ),
+                              builder: (context) => GenderSelectionScreen(),
                             ),
                           );
                           //                  // Handle get started

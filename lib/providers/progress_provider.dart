@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 
 class ProgressProvider with ChangeNotifier {
-  double _progress = 0.0;
+  int _currentStep = 1; // Start at step 1
 
-  double get progress => _progress;
+  int get currentStep => _currentStep;
+  int get totalSteps => 7; // Total number of steps
 
-  void setProgress(double value) {
-    _progress = value.clamp(0.0, 1.0); // Ensure it's between 0 and 1
-    notifyListeners();
+  void nextStep() {
+    if (_currentStep < totalSteps) {
+      _currentStep++;
+      notifyListeners();
+    }
   }
+
+  void previousStep() {
+    if (_currentStep > 1) {
+      _currentStep--;
+      notifyListeners();
+    }
+  }
+
+  double get progress => _currentStep / totalSteps; // Calculate the progress
 }

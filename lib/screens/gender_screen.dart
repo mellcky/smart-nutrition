@@ -1,142 +1,132 @@
 import 'package:diet_app/screens/age_screen.dart';
 import 'package:flutter/material.dart';
-import '/widgets/back_button_wrapper.dart';
-import '/widgets/progress_bar.dart';
-import 'package:diet_app/models/user_profile.dart';
+
 import '/providers/userprofile_provider.dart';
 import 'package:provider/provider.dart';
 
-import '/providers/progress_provider.dart';
-
 class GenderSelectionScreen extends StatefulWidget {
-  final UserProfile userProfile;
-
-  GenderSelectionScreen({Key? key, required this.userProfile})
-    : super(key: key);
+  const GenderSelectionScreen({super.key});
 
   @override
-  _GenderSelectionScreenState createState() => _GenderSelectionScreenState();
+  State<GenderSelectionScreen> createState() => _GenderSelectionScreenState();
 }
 
 class _GenderSelectionScreenState extends State<GenderSelectionScreen> {
   String? selectedGender;
 
   @override
-  void initState() {
-    super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ProgressProvider>(context, listen: false).setProgress(0.6);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            TopProgressBar(),
-            BackIconWrapper(),
-            // const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height:
-                  130, // Slightly increased to fit both logo and text comfortably
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  // Logo moved up
-                  Positioned(
-                    top: -50,
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: AssetImage('assets/images/app_logo.jpg'),
-                      backgroundColor: Colors.transparent,
+            // Back Button Positioned
+            Positioned(
+              top: 20,
+              left: 16,
+              child: IconButton(
+                icon: Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () {
+                  Navigator.pop(context); // This pops the current screen
+                },
+              ),
+            ),
+            // Main Column Content
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.green.shade100,
                     ),
-                  ),
-
-                  // Text positioned just below the logo
-                  Positioned(
-                    top: 60, // Logo top (-50) + radius (50) + 10px space = ~60
-                    child: const Text(
-                      "Basic Information",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    child: Center(
+                      child: Text(
+                        'Diet App',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade800,
+                        ),
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
+                ),
+                const Text(
+                  "Basic Information",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
 
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.transgender, color: Colors.black, size: 24),
-                SizedBox(width: 8),
-                Text(
-                  "What is your gender?",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.transgender, color: Colors.black, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      "What is your gender?",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 50),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _genderCard("Male", "assets/images/male.jpg"),
+                    const SizedBox(width: 20),
+                    _genderCard("Female", "assets/images/female.jpg"),
+                  ],
+                ),
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 50),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (selectedGender != null) {
+                        Provider.of<UserProfileProvider>(
+                          context,
+                          listen: false,
+                        ).updateGender(selectedGender!);
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AgeInputPage(),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Please select a gender"),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      "Continue",
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
                 ),
               ],
-            ),
-
-            SizedBox(height: 50),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _genderCard("Male", "assets/images/male.jpg"),
-                SizedBox(width: 20),
-                _genderCard("Female", "assets/images/female.jpg"),
-              ],
-            ),
-
-            Spacer(),
-            Padding(
-              padding: const EdgeInsets.only(
-                bottom: 50,
-              ), // Padding from the bottom of the screen
-              child: ElevatedButton(
-                onPressed: () {
-                  // ✅ Update gender in provider
-                  final profileProvider = Provider.of<UserProfileProvider>(
-                    context,
-                    listen: false,
-                  );
-                  profileProvider.updateGender(selectedGender!);
-
-                  if (selectedGender != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => AgeInputPage()),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Please select a gender")),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, // Green button
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  "Continue",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
             ),
           ],
         ),
@@ -148,13 +138,10 @@ class _GenderSelectionScreenState extends State<GenderSelectionScreen> {
     final isSelected = selectedGender == gender;
 
     return GestureDetector(
-      onTap:
-          () => setState(() {
-            selectedGender = gender;
-          }),
+      onTap: () => setState(() => selectedGender = gender),
       child: Container(
         width: 130,
-        padding: EdgeInsets.all(8),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           border: Border.all(
             color: isSelected ? Colors.blue : Colors.grey.shade300,
@@ -164,9 +151,16 @@ class _GenderSelectionScreenState extends State<GenderSelectionScreen> {
         ),
         child: Column(
           children: [
-            Image.asset(imagePath, height: 250, fit: BoxFit.contain),
-            SizedBox(height: 8),
-            Text(gender, style: TextStyle(fontSize: 16)),
+            Image.asset(
+              imagePath,
+              height: 200,
+              width: 100,
+              fit: BoxFit.cover,
+              cacheHeight: 300,
+              cacheWidth: 200,
+            ),
+            const SizedBox(height: 8),
+            Text(gender, style: const TextStyle(fontSize: 16)),
           ],
         ),
       ),

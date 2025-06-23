@@ -1,36 +1,25 @@
-import 'package:diet_app/screens/dietarygoals_screen.dart';
+import 'package:diet_app/screens/name_screen.dart';
+import 'package:diet_app/screens/summarize_screen.dart';
 import 'package:flutter/material.dart';
-import '/providers/userprofile_provider.dart';
 import 'package:provider/provider.dart';
+import '/providers/userprofile_provider.dart';
 
-class HealthConditionsScreen extends StatefulWidget {
+class DietaryGoalsScreen extends StatefulWidget {
+  const DietaryGoalsScreen({super.key});
+
   @override
-  _HealthConditionsScreenState createState() => _HealthConditionsScreenState();
+  State<DietaryGoalsScreen> createState() => _DietaryGoalsScreenState();
 }
 
-class _HealthConditionsScreenState extends State<HealthConditionsScreen> {
-  List<String> _selectedConditions = [];
-  final TextEditingController _otherConditionsController =
-      TextEditingController();
-
-  final List<Map<String, String>> _conditions = [
-    {'emoji': '✅', 'label': 'No health conditions'},
-    {'emoji': '🩸', 'label': 'Diabetes'},
-    {'emoji': '💓', 'label': 'Hypertension'},
-    {'emoji': '🧈', 'label': 'High cholesterol'},
-    {'emoji': '🫁', 'label': 'Asthma'},
-    {'emoji': '🦴', 'label': 'Arthritis'},
+class _DietaryGoalsScreenState extends State<DietaryGoalsScreen> {
+  // List of dietary goals with emojis
+  final List<String> _goals = [
+    '🏋️‍♂️ Weight Loss ',
+    '💪 Improved Health ',
+    '🍽️ Weight Gain ',
   ];
 
-  void _toggleSelection(String label) {
-    setState(() {
-      if (_selectedConditions.contains(label)) {
-        _selectedConditions.remove(label);
-      } else {
-        _selectedConditions.add(label);
-      }
-    });
-  }
+  List<String> _selectedGoals = [];
 
   @override
   Widget build(BuildContext context) {
@@ -73,44 +62,38 @@ class _HealthConditionsScreenState extends State<HealthConditionsScreen> {
               ),
             ),
             const Text(
-              "Do you have any health conditions?",
+              "What are your dietary goals?",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
+
+            // Goal selection list
             Expanded(
-              child: ListView(
+              child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  ..._conditions.map(
-                    (condition) => CheckboxListTile(
-                      dense: true,
-                      visualDensity: VisualDensity.compact,
-                      title: Text(
-                        "${condition['emoji']} ${condition['label']}",
-                      ),
-                      value: _selectedConditions.contains(condition['label']),
-                      onChanged: (_) => _toggleSelection(condition['label']!),
-                      controlAffinity: ListTileControlAffinity.leading,
+                itemCount: _goals.length,
+                itemBuilder: (context, index) {
+                  return CheckboxListTile(
+                    value: _selectedGoals.contains(_goals[index]),
+                    title: Text(
+                      _goals[index],
+                      style: const TextStyle(fontSize: 16),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "🧾 Other Conditions",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _otherConditionsController,
-                    decoration: InputDecoration(
-                      hintText: "Enter any other health conditions",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ],
+                    onChanged: (bool? selected) {
+                      setState(() {
+                        if (selected == true) {
+                          _selectedGoals.add(_goals[index]);
+                        } else {
+                          _selectedGoals.remove(_goals[index]);
+                        }
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                  );
+                },
               ),
             ),
+
             Padding(
               padding: const EdgeInsets.only(bottom: 30),
               child: Center(
@@ -120,17 +103,12 @@ class _HealthConditionsScreenState extends State<HealthConditionsScreen> {
                       context,
                       listen: false,
                     );
-                    userProfile.updateHealthConditions(_selectedConditions);
+                    userProfile.setDietaryGoals(_selectedGoals);
                     // move to the next page
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => DietaryGoalsScreen(),
-                      ),
+                      MaterialPageRoute(builder: (context) => NameScreen()),
                     );
-
-                    print("Selected Conditions: $_selectedConditions");
-                    print("Other: ${_otherConditionsController.text}");
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,

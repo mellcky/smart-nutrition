@@ -1,5 +1,4 @@
 import 'package:diet_app/screens/healthconditions_screen.dart';
-
 import '/widgets/back_button_wrapper.dart';
 import '/widgets/progress_bar.dart';
 import 'package:flutter/material.dart';
@@ -54,49 +53,59 @@ class _DietaryRestrictionsScreenState extends State<DietaryRestrictionsScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TopProgressBar(),
-            BackIconWrapper(),
-            SizedBox(
-              width: double.infinity,
-              height: 95,
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  Positioned(
-                    top: -50,
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: AssetImage('assets/images/app_logo.jpg'),
-                      backgroundColor: Colors.transparent,
+            Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 20, left: 16),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Icon(Icons.arrow_back, size: 28),
+                ),
+              ),
+            ),
+            // Logo at the top
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.green.shade100,
+                ),
+                child: Center(
+                  child: Text(
+                    'Diet App',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green.shade800,
                     ),
                   ),
-                  Positioned(
-                    top: 60,
-                    child: const Text(
-                      "Do you have any diet restrictions and allergies?",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
 
+            // Back arrow below the logo
+            const SizedBox(height: 8),
+
+            const Text(
+              "Do you have any dietary restrictions?",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            // Checkbox list + text input
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   ..._options.map(
                     (option) => CheckboxListTile(
-                      dense: true, // Reduce spacing
-                      visualDensity:
-                          VisualDensity.compact, // Even tighter spacing
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
                       title: Text("${option['emoji']} ${option['label']}"),
                       value: _selectedOptions.contains(option['label']),
                       onChanged: (_) => _toggleSelection(option['label']!),
@@ -121,32 +130,31 @@ class _DietaryRestrictionsScreenState extends State<DietaryRestrictionsScreen> {
                 ],
               ),
             ),
+
+            // Continue button
             Padding(
               padding: const EdgeInsets.only(bottom: 30),
               child: Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    // Save or pass selected data
-                    // Prepare combined restrictions list
                     List<String> restrictions = _selectedOptions.toList();
                     String other = _otherAllergiesController.text.trim();
                     if (other.isNotEmpty) {
                       restrictions.add(other);
                     }
 
-                    // Save to provider
-                    final profileProvider = Provider.of<UserProfileProvider>(
+                    Provider.of<UserProfileProvider>(
                       context,
                       listen: false,
-                    );
-                    profileProvider.updateDietRestrictions(restrictions);
-                    // move to the next page
+                    ).updateDietRestrictions(restrictions);
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => HealthConditionsScreen(),
                       ),
                     );
+
                     print("Selected: $_selectedOptions");
                     print("Other: ${_otherAllergiesController.text}");
                   },

@@ -10,7 +10,7 @@ class BackIconWrapper extends StatelessWidget implements PreferredSizeWidget {
         icon: Icon(Icons.arrow_back),
         onPressed: () => Navigator.pop(context),
       ),
-      backgroundColor: Colors.transparent,
+
       elevation: 0,
     );
   }
