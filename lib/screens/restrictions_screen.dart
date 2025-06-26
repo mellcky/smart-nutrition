@@ -1,6 +1,4 @@
 import 'package:diet_app/screens/healthconditions_screen.dart';
-import '/widgets/back_button_wrapper.dart';
-import '/widgets/progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '/providers/userprofile_provider.dart';

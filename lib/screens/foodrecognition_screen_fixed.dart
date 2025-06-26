@@ -12,9 +12,10 @@ import 'package:diet_app/providers/fooditem_provider.dart';
 import 'package:diet_app/models/food_item.dart';
 import '/db/user_database_helper.dart';
 import 'package:diet_app/screens/tracker_screen.dart';
+import 'package:flutter/services.dart'; // Added for HapticFeedback
 
 class FoodRecognitionScreen2 extends StatefulWidget {
-  final String mealType; // meal parameter
+  final String mealType;
   const FoodRecognitionScreen2({super.key, required this.mealType});
   @override
   State<FoodRecognitionScreen2> createState() => _FoodRecognitionScreen2State();
@@ -30,6 +31,9 @@ class _FoodRecognitionScreen2State extends State<FoodRecognitionScreen2> {
   stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
   String _speechText = '';
+  double _soundLevel = 0.0;
+  String _lastSpeechStatus = '';
+  bool _speechAvailable = false;
 
   List<String> _imageDetectedFoodItems = [];
   List<Map<String, dynamic>> _imageDetectedFoodItemsWithNutrition = [];
@@ -59,31 +63,52 @@ class _FoodRecognitionScreen2State extends State<FoodRecognitionScreen2> {
 
   // Initialize speech recognition
   void _initSpeech() async {
-    bool available = await _speech.initialize(
-      onStatus:
-          (status) => setState(() {
+    try {
+      bool available = await _speech.initialize(
+        onStatus: (status) {
+          setState(() {
+            _lastSpeechStatus = status;
             if (status == 'done') {
-              setState(() => _isListening = false);
+              _isListening = false;
             }
-          }),
-      onError:
-          (error) => setState(() {
-            _errorMessage = 'Speech error: $error';
-          }),
-    );
+          });
+        },
+        onError: (error) {
+          setState(() {
+            _lastSpeechStatus = 'Error: ${error.errorMsg}';
+            _isListening = false;
+          });
+        },
+        debugLogging: false,
+      );
 
-    if (!available) {
-      setState(() => _errorMessage = 'Speech recognition not available');
+      if (!available) {
+        setState(() => _errorMessage = 'Speech recognition not available');
+      }
+
+      setState(() => _speechAvailable = available);
+    } catch (e) {
+      setState(() => _errorMessage = 'Speech init failed: ${e.toString()}');
     }
   }
 
   // Start voice recording
   void _startRecording() {
+    if (!_speechAvailable) {
+      setState(() => _errorMessage = 'Speech not initialized');
+      return;
+    }
+
     setState(() {
       _isListening = true;
       _speechText = '';
       _foodDescriptionController.text = '';
+      _soundLevel = 0.0;
+      _lastSpeechStatus = 'listening...';
     });
+
+    // Provide haptic feedback
+    HapticFeedback.mediumImpact();
 
     _speech.listen(
       onResult: (result) {
@@ -93,16 +118,46 @@ class _FoodRecognitionScreen2State extends State<FoodRecognitionScreen2> {
         });
       },
       listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
       localeId: 'en_US',
+      onSoundLevelChange: (level) {
+        setState(() => _soundLevel = level);
+      },
       cancelOnError: true,
       partialResults: true,
+      listenMode: stt.ListenMode.confirmation,
     );
   }
 
   // Stop voice recording
   void _stopRecording() {
     _speech.stop();
-    setState(() => _isListening = false);
+    setState(() {
+      _isListening = false;
+      _lastSpeechStatus = 'processing...';
+
+      // Add punctuation if missing
+      _speechText = _addPunctuation(_speechText);
+      _foodDescriptionController.text = _speechText;
+    });
+
+    // Provide haptic feedback
+    HapticFeedback.lightImpact();
+  }
+
+  // Add punctuation to speech text
+  String _addPunctuation(String text) {
+    if (text.isEmpty) return text;
+
+    // Trim and add period if missing
+    text = text.trim();
+    final lastChar = text[text.length - 1];
+    if (lastChar != '.' && lastChar != '!' && lastChar != '?') {
+      text += '.';
+    }
+
+    // Capitalize first letter
+    return text[0].toUpperCase() + text.substring(1);
   }
 
   @override
@@ -568,8 +623,9 @@ If the image DOES contain food, identify only the food items visible. List each 
       k: nutritionInfo['k']?.toDouble() ?? 0.0,
       fe: nutritionInfo['fe']?.toDouble() ?? 0.0,
       zn: nutritionInfo['zn']?.toDouble() ?? 0.0,
-      mealType: widget.mealType, // Use the passed mealType
+      mealType: widget.mealType,
       timestamp: DateTime.now(),
+      imagePath: _image?.path ?? '',
     );
 
     try {
@@ -601,12 +657,12 @@ If the image DOES contain food, identify only the food items visible. List each 
             ],
           ),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3), // Increased duration
+          duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
-          margin: const EdgeInsets.all(16), // Simplified margin
+          margin: const EdgeInsets.all(16),
         ),
       );
 
@@ -615,12 +671,6 @@ If the image DOES contain food, identify only the food items visible. List each 
 
       // Check if widget is still mounted before navigating
       if (!mounted) return;
-
-      // Navigate to tracker screen
-      // Navigator.push(
-      //   context,
-      //   MaterialPageRoute(builder: (context) => const TrackerScreen()),
-      // );
     } catch (error) {
       // Handle any errors during logging
       if (!mounted) return;
@@ -779,20 +829,41 @@ If the image DOES contain food, identify only the food items visible. List each 
                                         onPressed:
                                             _busy ? null : _clearTextInput,
                                       ),
-                                    IconButton(
-                                      icon: Icon(
-                                        _isListening ? Icons.stop : Icons.mic,
+                                    // Enhanced mic button with sound visualization
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        boxShadow: [
+                                          BoxShadow(
+                                            blurRadius: .26,
+                                            spreadRadius: _soundLevel * 1.5,
+                                            color: Colors.black.withOpacity(.1),
+                                          ),
+                                        ],
                                         color:
                                             _isListening
                                                 ? Colors.red
-                                                : Colors.grey,
+                                                : Colors.grey[300],
+                                        borderRadius: const BorderRadius.all(
+                                          Radius.circular(50),
+                                        ),
                                       ),
-                                      onPressed:
-                                          _busy
-                                              ? null
-                                              : _isListening
-                                              ? _stopRecording
-                                              : _startRecording,
+                                      child: IconButton(
+                                        icon: Icon(
+                                          _isListening ? Icons.stop : Icons.mic,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                        onPressed:
+                                            _busy
+                                                ? null
+                                                : _isListening
+                                                ? _stopRecording
+                                                : _startRecording,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -804,7 +875,49 @@ If the image DOES contain food, identify only the food items visible. List each 
                           ),
                         ],
                       ),
+                      // Speech status indicators
                       if (_isListening)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Column(
+                            children: [
+                              // Sound level bar
+                              Container(
+                                height: 4,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(2),
+                                  color: Colors.grey[300],
+                                ),
+                                child: FractionallySizedBox(
+                                  alignment: Alignment.centerLeft,
+                                  widthFactor: _soundLevel.clamp(0.0, 1.0),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(2),
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              // Status text
+                              Text(
+                                _lastSpeechStatus,
+                                style: TextStyle(
+                                  color:
+                                      _lastSpeechStatus.contains('Error')
+                                          ? Colors.red
+                                          : Colors.green[700],
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (!_isListening && _speechText.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Container(
@@ -820,47 +933,15 @@ If the image DOES contain food, identify only the food items visible. List each 
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.mic,
+                                  Icons.check,
                                   color: Colors.green[700],
                                   size: 16,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Listening...',
+                                  'Ready to analyze',
                                   style: TextStyle(
                                     color: Colors.green[700],
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (!_isListening && _speechText.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 6,
-                              horizontal: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.stop,
-                                  color: Colors.red[700],
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Recording stopped,Tap"Log Food"',
-                                  style: TextStyle(
-                                    color: Colors.red[700],
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),

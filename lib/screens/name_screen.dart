@@ -94,7 +94,6 @@ class _NameScreenState extends State<NameScreen> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _onNext,
-                  child: const Text("Next"),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 48,
@@ -104,6 +103,7 @@ class _NameScreenState extends State<NameScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
+                  child: const Text("Next"),
                 ),
               ],
             ),

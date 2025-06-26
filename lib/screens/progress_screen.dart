@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../providers/fooditem_provider.dart';
+import '../utils/progress_analyzer.dart';
+import '../widgets/charts/health_score_gauge.dart';
+import '../widgets/charts/nutrition_chart.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -10,474 +13,438 @@ class ProgressScreen extends StatefulWidget {
   State<ProgressScreen> createState() => _ProgressScreenState();
 }
 
-class _ProgressScreenState extends State<ProgressScreen>
-    with TickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _ProgressScreenState extends State<ProgressScreen> {
+  TimePeriod _timePeriod = TimePeriod.weekly;
+  String _selectedMetric = 'calories';
+  final List<String> _metrics = [
+    'calories',
+    'protein',
+    'carbs',
+    'fats',
+    'sugar',
+    'sodium',
+    'saturatedFat',
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<FoodItemProvider>(context);
+    final data = NutritionDataAggregator.aggregateData(provider, _timePeriod);
+
+    // Get items for the current period (7 days for weekly, 30 for monthly)
+    final periodItems = provider.getFoodItemsForDateRange(
+      _timePeriod == TimePeriod.weekly
+          ? DateTime.now().subtract(const Duration(days: 7))
+          : DateTime.now().subtract(const Duration(days: 30)),
+      DateTime.now(),
+    );
+
+    final insights = HealthRiskAnalyzer.analyzeRisks(periodItems);
+    final healthScore = HealthRiskAnalyzer.calculateHealthScore(periodItems);
+
     return Scaffold(
-      // backgroundColor: Colors.grey[100], // Removed as per your code
-      appBar: AppBar(
-        // backgroundColor: Colors.white, // Commented out as per your code
-        elevation: 0,
-        toolbarHeight: 0, // Added as per your code
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.blueAccent,
-          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: GoogleFonts.poppins(),
-          tabs: const [Tab(text: "Insights"), Tab(text: "Alerts")],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [InsightsTab(), AlertsTab()],
-      ),
-    );
-  }
-}
+      // appBar: AppBar(
+      //   title: const Text('Nutrition Progress'),
+      //   centerTitle: true,
+      //   actions: [
+      //     IconButton(
+      //       icon: const Icon(Icons.info_outline),
+      //       onPressed: () => _showHealthStandards(context),
+      //     ),
+      //   ],
+      // ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(8),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Time Period Toggle
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Weekly'),
+                        selected: _timePeriod == TimePeriod.weekly,
+                        onSelected:
+                            (_) =>
+                                setState(() => _timePeriod = TimePeriod.weekly),
+                        selectedColor: Theme.of(context).primaryColor,
+                        labelStyle: TextStyle(
+                          color:
+                              _timePeriod == TimePeriod.weekly
+                                  ? Colors.white
+                                  : Colors.black,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ChoiceChip(
+                        label: const Text('Monthly'),
+                        selected: _timePeriod == TimePeriod.monthly,
+                        onSelected:
+                            (_) => setState(
+                              () => _timePeriod = TimePeriod.monthly,
+                            ),
+                        selectedColor: Theme.of(context).primaryColor,
+                        labelStyle: TextStyle(
+                          color:
+                              _timePeriod == TimePeriod.monthly
+                                  ? Colors.white
+                                  : Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
 
-class InsightsTab extends StatefulWidget {
-  const InsightsTab({super.key});
+                  // const SizedBox(height: 1),
 
-  @override
-  State<InsightsTab> createState() => _InsightsTabState();
-}
+                  // Health Score
+                  Center(
+                    child: Column(
+                      children: [
+                        HealthScoreGauge(score: healthScore),
+                        const SizedBox(height: 8),
+                        Text(
+                          healthScore > 8
+                              ? 'Excellent! 🎉'
+                              : healthScore > 6
+                              ? 'Good Job! 👍'
+                              : 'Needs Improvement 💪',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
 
-class _InsightsTabState extends State<InsightsTab> {
-  bool isWeekly = true;
+                  const SizedBox(height: 24),
 
-  Widget _buildInsightCard(String title, Widget child) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.white, Colors.grey[50]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(height: 200, child: child),
-        ],
-      ),
-    ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0);
-  }
-
-  Widget _buildSegmentedControl() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => isWeekly = false),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: !isWeekly ? Colors.blueAccent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    "Daily",
-                    style: GoogleFonts.poppins(
-                      color: !isWeekly ? Colors.white : Colors.black87,
+                  // Metric Selector
+                  Text(
+                    'Select Metric:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => isWeekly = true),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: isWeekly ? Colors.blueAccent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    "Weekly",
-                    style: GoogleFonts.poppins(
-                      color: isWeekly ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children:
+                          _metrics.map((metric) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(
+                                  metric == 'saturatedFat'
+                                      ? 'Sat. Fat'
+                                      : metric,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color:
+                                        _selectedMetric == metric
+                                            ? Colors.white
+                                            : Theme.of(
+                                              context,
+                                            ).colorScheme.onBackground,
+                                  ),
+                                ),
+                                selected: _selectedMetric == metric,
+                                onSelected:
+                                    (_) => setState(
+                                      () => _selectedMetric = metric,
+                                    ),
+                                selectedColor: Theme.of(context).primaryColor,
+                                backgroundColor: Colors.grey[200],
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
+                            );
+                          }).toList(),
                     ),
                   ),
-                ),
+
+                  const SizedBox(height: 24),
+
+                  // Chart Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Nutrition Trends',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Chart
+                  SizedBox(
+                    height: 300,
+                    child: NutritionChart(
+                      data: data,
+                      selectedMetric: _selectedMetric,
+                      period: _timePeriod,
+                      onBarTapped: (date) {
+                        _showDailyDetails(context, provider, date);
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Health Insights
+                  Text(
+                    'Health Insights',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: ListView(
+                      shrinkWrap: true,
+                      children:
+                          insights
+                              .map(
+                                (insight) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: _getInsightColor(
+                                            insight,
+                                          ).withOpacity(0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          _getInsightIcon(insight),
+                                          size: 20,
+                                          color: _getInsightColor(insight),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          insight,
+                                          style: TextStyle(
+                                            color: Colors.grey[800],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  ),
+
+                  // Add bottom padding for iOS safe area
+                  SizedBox(height: MediaQuery.of(context).padding.bottom),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        _buildSegmentedControl(),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildInsightCard(
-                "Macronutrient Distribution",
-                MacroPieChart(isWeekly: isWeekly),
-              ),
-              _buildInsightCard(
-                "Micronutrient Levels",
-                MicroRadarChart(isWeekly: isWeekly),
-              ),
-              _buildInsightCard(
-                "Hydration Tracker",
-                HydrationLineChart(isWeekly: isWeekly),
-              ),
-              _buildInsightCard(
-                "Total Calories",
-                TotalCaloriesCircular(isWeekly: isWeekly),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class AlertsTab extends StatelessWidget {
-  const AlertsTab({super.key});
-
-  Widget _buildAlertCard({required String description, required Color color}) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.notifications, color: color, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              description,
-              style: GoogleFonts.poppins(
-                color: color,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 600.ms).slideX(begin: 0.2, end: 0);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildAlertCard(
-          description:
-              "High sodium intake detected this week. Consider reducing salt.",
-          color: Colors.redAccent,
-        ),
-        _buildAlertCard(
-          description: "Your hydration level was below average on 3 days.",
-          color: Colors.orange,
-        ),
-        _buildAlertCard(
-          description: "Balanced macronutrient intake maintained daily!",
-          color: Colors.green,
-        ),
-      ],
-    );
-  }
-}
-
-// ----------- Chart Widgets ------------
-
-class MacroPieChart extends StatelessWidget {
-  final bool isWeekly;
-  const MacroPieChart({super.key, required this.isWeekly});
-
-  @override
-  Widget build(BuildContext context) {
-    final carbs = isWeekly ? 40.0 : 35.0;
-    final fats = isWeekly ? 30.0 : 25.0;
-    final proteins = isWeekly ? 30.0 : 40.0;
-    final total = carbs + fats + proteins;
-
-    final carbsPercentage = ((carbs / total) * 100).toStringAsFixed(1);
-    final fatsPercentage = ((fats / total) * 100).toStringAsFixed(1);
-    final proteinsPercentage = ((proteins / total) * 100).toStringAsFixed(1);
-
-    return PieChart(
-      PieChartData(
-        sections: [
-          PieChartSectionData(
-            value: carbs,
-            color: Colors.orangeAccent,
-            title: "Carbs: $carbsPercentage%",
-            radius: 60,
-            titleStyle: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          PieChartSectionData(
-            value: fats,
-            color: Colors.greenAccent,
-            title: "Fats: $fatsPercentage%",
-            radius: 60,
-            titleStyle: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          PieChartSectionData(
-            value: proteins,
-            color: Colors.blueAccent,
-            title: "Proteins: $proteinsPercentage%",
-            radius: 60,
-            titleStyle: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-        sectionsSpace: 2,
-        centerSpaceRadius: 40,
-      ),
-    ).animate().scale(duration: 800.ms, curve: Curves.easeOutBack);
-  }
-}
-
-class MicroRadarChart extends StatelessWidget {
-  final bool isWeekly;
-  const MicroRadarChart({super.key, required this.isWeekly});
-
-  @override
-  Widget build(BuildContext context) {
-    final dailyData = [7.0, 5.0, 6.0, 4.0, 8.0];
-    final weeklyData = [40.0, 35.0, 38.0, 30.0, 42.0];
-    final data = isWeekly ? weeklyData : dailyData;
-    final maxValue = (isWeekly ? weeklyData : dailyData).reduce(
-      (a, b) => a > b ? a : b,
-    );
-
-    return RadarChart(
-      RadarChartData(
-        radarShape: RadarShape.polygon,
-        dataSets: [
-          RadarDataSet(
-            fillColor: Colors.teal.withOpacity(0.2),
-            borderColor: Colors.teal,
-            entryRadius: 2,
-            dataEntries:
-                data
-                    .asMap()
-                    .entries
-                    .map((e) => RadarEntry(value: e.value))
-                    .toList(),
-          ),
-        ],
-        tickCount: 5,
-        ticksTextStyle: GoogleFonts.poppins(fontSize: 10, color: Colors.grey),
-        titleTextStyle: GoogleFonts.poppins(
-          fontSize: 12,
-          color: Colors.black87,
-        ),
-        titlePositionPercentageOffset: 0.2,
-        getTitle: (index, _) {
-          const labels = ["Iron", "Zinc", "Mg", "Ca", "K"];
-          return RadarChartTitle(text: labels[index], angle: 0);
+          );
         },
-        radarBorderData: const BorderSide(color: Colors.grey),
-        gridBorderData: BorderSide(color: Colors.grey.withOpacity(0.2)),
       ),
-      swapAnimationDuration: const Duration(milliseconds: 400),
-    ).animate().fadeIn(duration: 600.ms);
+    );
   }
-}
 
-class HydrationLineChart extends StatelessWidget {
-  final bool isWeekly;
-  const HydrationLineChart({super.key, required this.isWeekly});
+  Color _getInsightColor(String insight) {
+    if (insight.contains('⚠️') || insight.contains('may increase'))
+      return Colors.orange;
+    if (insight.contains('🧂') || insight.contains('High sodium'))
+      return Colors.red;
+    if (insight.contains('🍔') || insight.contains('saturated fat'))
+      return Colors.deepOrange;
+    return Colors.green;
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final daily = [2.0, 2.5, 1.8, 3.0, 2.2, 2.9, 2.0];
-    final weekly = [14.0];
-    final data = isWeekly ? weekly : daily;
+  IconData _getInsightIcon(String insight) {
+    if (insight.contains('⚠️') || insight.contains('may increase'))
+      return Icons.warning;
+    if (insight.contains('🧂') || insight.contains('High sodium'))
+      return Icons.bloodtype;
+    if (insight.contains('🍔') || insight.contains('saturated fat'))
+      return Icons.fastfood;
+    return Icons.check_circle;
+  }
 
-    return LineChart(
-      LineChartData(
-        maxY: isWeekly ? 20 : 3.5,
-        minY: 0,
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                if (isWeekly) {
-                  return Text(
-                    "This Week",
-                    style: GoogleFonts.poppins(fontSize: 10),
-                  );
-                }
-                const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-                return Text(
-                  value.toInt() < days.length ? days[value.toInt()] : "",
-                  style: GoogleFonts.poppins(fontSize: 10),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              getTitlesWidget:
-                  (value, meta) => Text(
-                    value.toStringAsFixed(1),
-                    style: GoogleFonts.poppins(fontSize: 10),
+  void _showDailyDetails(
+    BuildContext context,
+    FoodItemProvider provider,
+    DateTime date,
+  ) {
+    final items = provider.getFoodItemsForDate(date);
+    final dateFormatted = DateFormat.yMMMMd().format(date);
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(dateFormatted),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (items.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text('No food logged this day'),
+                  )
+                else
+                  ...items
+                      .map(
+                        (item) => ListTile(
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _getMealIcon(item.mealType),
+                              color: Colors.blue,
+                            ),
+                          ),
+                          title: Text(
+                            item.foodItem,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          subtitle: Text(
+                            '${item.calories.toStringAsFixed(0)} kcal',
+                          ),
+                          trailing: Text(
+                            item.mealType,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                const SizedBox(height: 16),
+                if (items.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Daily Total:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${provider.getTotalCalories(date).toStringAsFixed(0)} kcal',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+              ],
             ),
-          ),
-          topTitles: const AxisTitles(),
-          rightTitles: const AxisTitles(),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots:
-                isWeekly
-                    ? [const FlSpot(0, 14.0)]
-                    : daily
-                        .asMap()
-                        .entries
-                        .map((e) => FlSpot(e.key.toDouble(), e.value))
-                        .toList(),
-            isCurved: true,
-            color: Colors.blueAccent,
-            dotData: const FlDotData(show: true),
-            belowBarData: BarAreaData(
-              show: true,
-              color: Colors.blueAccent.withOpacity(0.1),
-            ),
-          ),
-        ],
-        borderData: FlBorderData(show: false),
-      ),
-    ).animate().fadeIn(duration: 600.ms);
-  }
-}
-
-class TotalCaloriesCircular extends StatelessWidget {
-  final bool isWeekly;
-  const TotalCaloriesCircular({super.key, required this.isWeekly});
-
-  @override
-  Widget build(BuildContext context) {
-    final dailyCalories = [1800, 2000, 2200, 2100, 1900, 2500, 2300];
-    final weeklyCalories = [13000];
-    final data = isWeekly ? weeklyCalories : dailyCalories;
-    final maxCalories = isWeekly ? 14000.0 : 2500.0;
-    final currentCalories =
-        isWeekly
-            ? data[0].toDouble()
-            : (data.reduce((a, b) => a + b) / data.length).toDouble();
-
-    return Center(
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            height: 150,
-            width: 150,
-            child: CircularProgressIndicator(
-              value: currentCalories / maxCalories,
-              strokeWidth: 12,
-              backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation<Color>(
-                currentCalories < (isWeekly ? 12000 : 2000)
-                    ? Colors.redAccent
-                    : Colors.greenAccent,
-              ),
-            ),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                currentCalories.toInt().toString(),
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              Text(
-                "kcal",
-                style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
               ),
             ],
           ),
+    );
+  }
+
+  IconData _getMealIcon(String mealType) {
+    switch (mealType.toLowerCase()) {
+      case 'breakfast':
+        return Icons.breakfast_dining;
+      case 'lunch':
+        return Icons.lunch_dining;
+      case 'dinner':
+        return Icons.dinner_dining;
+      case 'snack':
+        return Icons.cookie;
+      default:
+        return Icons.restaurant;
+    }
+  }
+
+  void _showHealthStandards(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Health Standards'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildStandardRow('Sugar', '≤36g/day', Colors.pink),
+                _buildStandardRow('Sodium', '≤2300mg/day', Colors.blueGrey),
+                _buildStandardRow(
+                  'Saturated Fat',
+                  '≤22g/day',
+                  Colors.deepOrange,
+                ),
+                _buildStandardRow('Protein', '50-175g/day', Colors.blue),
+                const SizedBox(height: 16),
+                Text(
+                  'Based on WHO recommendations for average adults',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget _buildStandardRow(String title, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 12),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+          const Spacer(),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
-    ).animate().scale(duration: 800.ms, curve: Curves.easeOut);
+    );
   }
 }

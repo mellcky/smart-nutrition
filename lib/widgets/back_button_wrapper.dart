@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 // import '../onboardingprovider/onboardingclass.dart';
 
 class BackIconWrapper extends StatelessWidget implements PreferredSizeWidget {
+  const BackIconWrapper({super.key});
+
   @override
   Widget build(BuildContext context) {
     return AppBar(

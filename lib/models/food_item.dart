@@ -22,6 +22,7 @@ class FoodItem {
   final double sodium;
   final String mealType; // 'breakfast', 'lunch', 'dinner', 'snack'
   final DateTime timestamp;
+  final String? imagePath;
 
   FoodItem({
     required this.foodItem,
@@ -47,6 +48,7 @@ class FoodItem {
     required this.sodium,
     required this.mealType,
     required this.timestamp,
+    this.imagePath,
   });
 
   factory FoodItem.fromJson(Map<String, dynamic> json) {
@@ -77,6 +79,8 @@ class FoodItem {
           json['timestamp'] != null
               ? DateTime.fromMillisecondsSinceEpoch(json['timestamp'])
               : DateTime.now(),
+
+      imagePath: json['imagePath'],
     );
   }
 
@@ -105,6 +109,7 @@ class FoodItem {
       'sodium': sodium,
       'mealType': mealType,
       'timestamp': timestamp.millisecondsSinceEpoch,
+      'imagePath': imagePath,
     };
   }
 
@@ -136,6 +141,8 @@ class FoodItem {
           map['timestamp'] != null
               ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'])
               : DateTime.now(),
+
+      imagePath: map['imagePath'],
     );
   }
 }

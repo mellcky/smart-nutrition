@@ -125,6 +125,8 @@ Map<String, dynamic> getMultipliedNutrition(String foodName, int quantity) {
 }
 
 class FoodInputScreen extends StatefulWidget {
+  const FoodInputScreen({super.key});
+
   @override
   _FoodInputScreenState createState() => _FoodInputScreenState();
 }

@@ -45,8 +45,7 @@ class UserDatabaseHelper {
         name TEXT,
         totalCaloriesGoal REAL,
         timestamp INTEGER DEFAULT (strftime('%s', 'now'))
-        
-      )
+        )
     ''');
 
     await db.execute('''
@@ -74,7 +73,8 @@ class UserDatabaseHelper {
         fiber REAL,
         sodium REAL,
         mealType TEXT,      
-        timestamp INTEGER 
+        timestamp INTEGER,
+        imagePath TEXT 
       )
     ''');
   }
@@ -85,11 +85,10 @@ class UserDatabaseHelper {
     return await db.insert(tableUser, profile.toMap());
   }
 
-  // Get all user profiles (you'll usually only have one)
+  // Get all user profiles
   Future<List<UserProfile>> getUsers() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(tableUser);
-
     return maps.map((map) => UserProfile.fromMap(map)).toList();
   }
 
@@ -110,7 +109,7 @@ class UserDatabaseHelper {
     return await db.delete(tableUser, where: 'id = ?', whereArgs: [id]);
   }
 
-  // Optional: Clear all users (e.g., for testing or logout)
+  // Clear all users
   Future<void> clearUsers() async {
     final db = await database;
     await db.delete(tableUser);
@@ -127,13 +126,38 @@ class UserDatabaseHelper {
     return List.generate(maps.length, (i) => FoodItem.fromMap(maps[i]));
   }
 
-  // user_database_helper.dart
-  Future<List<FoodItem>> getFoodItemsByMealType(String mealType) async {
+  Future<List<FoodItem>> getFoodItemsByDate(DateTime date) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(Duration(days: 1));
+
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       tableFoodItems,
-      where: 'mealType = ?',
-      whereArgs: [mealType],
+      where: 'timestamp >= ? AND timestamp < ?',
+      whereArgs: [
+        startOfDay.millisecondsSinceEpoch,
+        endOfDay.millisecondsSinceEpoch,
+      ],
+    );
+    return List.generate(maps.length, (i) => FoodItem.fromMap(maps[i]));
+  }
+
+  Future<List<FoodItem>> getFoodItemsByMealTypeAndDate(
+    String mealType,
+    DateTime date,
+  ) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(Duration(days: 1));
+
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      tableFoodItems,
+      where: 'mealType = ? AND timestamp >= ? AND timestamp < ?',
+      whereArgs: [
+        mealType,
+        startOfDay.millisecondsSinceEpoch,
+        endOfDay.millisecondsSinceEpoch,
+      ],
     );
     return List.generate(maps.length, (i) => FoodItem.fromMap(maps[i]));
   }

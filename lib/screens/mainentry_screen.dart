@@ -54,6 +54,8 @@ class _MainEntryScreenState extends State<MainEntryScreen> {
     final greeting = _getTimeBasedGreeting(name);
     return Scaffold(
       appBar: AppBar(
+        surfaceTintColor: Colors.white,
+        
         title: Text(
           greeting,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/meal_plan.dart';
-import '../models/food_item.dart';
 import '../models/user_profile.dart';
 import '../providers/userprofile_provider.dart';
 import '../services/gemini_service.dart';
@@ -443,7 +442,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                 meal: meal,
                                 icon: mealIcon,
                               );
-                            }).toList(),
+                            }),
                           ],
                         ),
               ),
@@ -684,8 +683,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                       // Meal summaries
                                       ...dailyPlan.meals.map((meal) {
                                         // Skip empty meals
-                                        if (meal.foodItems.isEmpty)
+                                        if (meal.foodItems.isEmpty) {
                                           return const SizedBox.shrink();
+                                        }
 
                                         // Determine icon based on meal type
                                         IconData mealIcon;
@@ -789,12 +789,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                             ],
                                           ),
                                         );
-                                      }).toList(),
+                                      }),
                                     ],
                                   ),
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ],
                         ),
               ),
@@ -924,7 +924,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       const SizedBox(height: 4),
                     ],
                   );
-                }).toList(),
+                }),
 
                 const SizedBox(height: 8),
 
@@ -965,13 +965,7 @@ class _NutrientItem extends StatelessWidget {
   final Color color;
   final IconData icon;
 
-  const _NutrientItem(
-    this.label,
-    this.value,
-    this.color,
-    this.icon, {
-    super.key,
-  });
+  const _NutrientItem(this.label, this.value, this.color, this.icon);
 
   @override
   Widget build(BuildContext context) {

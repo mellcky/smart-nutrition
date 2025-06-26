@@ -4,12 +4,14 @@ import '/providers/userprofile_provider.dart';
 import 'package:provider/provider.dart';
 
 class HealthConditionsScreen extends StatefulWidget {
+  const HealthConditionsScreen({super.key});
+
   @override
   _HealthConditionsScreenState createState() => _HealthConditionsScreenState();
 }
 
 class _HealthConditionsScreenState extends State<HealthConditionsScreen> {
-  List<String> _selectedConditions = [];
+  final List<String> _selectedConditions = [];
   final TextEditingController _otherConditionsController =
       TextEditingController();
 

@@ -1,5 +1,6 @@
 // import 'package:diet_app/screens/foodinput_screen.dart';
 // import 'package:diet_app/screens/foodrecognition_screen.dart';
+import 'dart:io';
 import 'package:diet_app/screens/foodrecognition_screen_fixed.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -24,6 +25,7 @@ class _LoggingScreenState extends State<LoggingScreen> {
     super.initState();
     selectedDate = DateTime.now();
     _generateWeekDates(selectedDate);
+    _loadFoodItemsForDate(selectedDate);
   }
 
   void _generateWeekDates(DateTime fromDate) {
@@ -32,11 +34,20 @@ class _LoggingScreenState extends State<LoggingScreen> {
     weekDates = List.generate(7, (index) => monday.add(Duration(days: index)));
   }
 
+  Future<void> _loadFoodItemsForDate(DateTime date) async {
+    final db = UserDatabaseHelper();
+    List<FoodItem> foodItems = await db.getFoodItemsByDate(date);
+    final foodProvider = Provider.of<FoodItemProvider>(context, listen: false);
+    foodProvider.clearFoodItemsForDate(date);
+    foodProvider.addFoodItemsForDate(date, foodItems);
+  }
+
   void _selectDate(DateTime date) {
     setState(() {
       selectedDate = date;
       _generateWeekDates(date);
     });
+    _loadFoodItemsForDate(date);
   }
 
   bool isSameDate(DateTime a, DateTime b) {
@@ -65,25 +76,25 @@ class _LoggingScreenState extends State<LoggingScreen> {
           children: [
             _NutrientItem(
               'Calories',
-              '${foodProvider.totalCalories.toStringAsFixed(0)}kcal',
+              '${foodProvider.getTotalCalories(selectedDate).toStringAsFixed(0)}kcal',
               Colors.red,
               Icons.whatshot,
             ),
             _NutrientItem(
               'Protein',
-              '${foodProvider.totalProtein.toStringAsFixed(0)}g',
+              '${foodProvider.getTotalProtein(selectedDate).toStringAsFixed(0)}g',
               Colors.blue,
               Icons.restaurant_menu,
             ),
             _NutrientItem(
               'Fat',
-              '${foodProvider.totalFats.toStringAsFixed(0)}g',
+              '${foodProvider.getTotalFats(selectedDate).toStringAsFixed(0)}g',
               Colors.orange,
               Icons.water_drop,
             ),
             _NutrientItem(
               'Carbs',
-              '${foodProvider.totalCarbs.toStringAsFixed(0)}g',
+              '${foodProvider.getTotalCarbs(selectedDate).toStringAsFixed(0)}g',
               Colors.green,
               Icons.eco,
             ),
@@ -165,7 +176,10 @@ class _LoggingScreenState extends State<LoggingScreen> {
 
   Future<void> _showMealHistory(BuildContext context, String mealType) async {
     final dbHelper = UserDatabaseHelper();
-    List<FoodItem> foodItems = await dbHelper.getFoodItemsByMealType(mealType);
+    List<FoodItem> foodItems = await dbHelper.getFoodItemsByMealTypeAndDate(
+      mealType,
+      selectedDate,
+    );
 
     // Sort by timestamp descending (newest first)
     foodItems.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -203,7 +217,17 @@ class _LoggingScreenState extends State<LoggingScreen> {
                             return Card(
                               margin: const EdgeInsets.symmetric(vertical: 4),
                               child: ListTile(
-                                leading: const Icon(Icons.fastfood),
+                                leading:
+                                    item.imagePath != null
+                                        ? CircleAvatar(
+                                          backgroundImage: FileImage(
+                                            File(item.imagePath!),
+                                          ),
+                                          radius: 24,
+                                        )
+                                        : const CircleAvatar(
+                                          child: Icon(Icons.fastfood),
+                                        ),
                                 title: Text(
                                   item.foodItem,
                                   style: const TextStyle(
@@ -419,13 +443,7 @@ class _NutrientItem extends StatelessWidget {
   final Color color;
   final IconData icon;
 
-  const _NutrientItem(
-    this.label,
-    this.value,
-    this.color,
-    this.icon, {
-    super.key,
-  });
+  const _NutrientItem(this.label, this.value, this.color, this.icon);
 
   @override
   Widget build(BuildContext context) {

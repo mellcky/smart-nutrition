@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/user_profile.dart';
-import '../models/food_item.dart';
 import '../models/meal_plan.dart';
 
 class GeminiService {

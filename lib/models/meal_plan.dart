@@ -14,15 +14,17 @@ class Meal {
   });
 
   // Calculate total nutritional values for the meal
-  double get totalCalories => foodItems.fold(0, (sum, item) => sum + item.calories);
-  double get totalProtein => foodItems.fold(0, (sum, item) => sum + item.protein);
+  double get totalCalories =>
+      foodItems.fold(0, (sum, item) => sum + item.calories);
+  double get totalProtein =>
+      foodItems.fold(0, (sum, item) => sum + item.protein);
   double get totalFats => foodItems.fold(0, (sum, item) => sum + item.fats);
   double get totalCarbs => foodItems.fold(0, (sum, item) => sum + item.carbs);
 
   factory Meal.fromJson(Map<String, dynamic> json) {
     try {
       // Check if foodItems exists and is a list
-      if (json['foodItems'] == null || !(json['foodItems'] is List)) {
+      if (json['foodItems'] == null || json['foodItems'] is! List) {
         return Meal(
           mealType: json['mealType'] ?? 'Unknown',
           foodItems: [],
@@ -80,14 +82,13 @@ class DailyMealPlan {
   final DateTime date;
   final List<Meal> meals;
 
-  DailyMealPlan({
-    required this.date,
-    required this.meals,
-  });
+  DailyMealPlan({required this.date, required this.meals});
 
   // Calculate total nutritional values for the day
-  double get totalCalories => meals.fold(0, (sum, meal) => sum + meal.totalCalories);
-  double get totalProtein => meals.fold(0, (sum, meal) => sum + meal.totalProtein);
+  double get totalCalories =>
+      meals.fold(0, (sum, meal) => sum + meal.totalCalories);
+  double get totalProtein =>
+      meals.fold(0, (sum, meal) => sum + meal.totalProtein);
   double get totalFats => meals.fold(0, (sum, meal) => sum + meal.totalFats);
   double get totalCarbs => meals.fold(0, (sum, meal) => sum + meal.totalCarbs);
 
@@ -103,11 +104,8 @@ class DailyMealPlan {
       }
 
       // Check if meals exists and is a list
-      if (json['meals'] == null || !(json['meals'] is List)) {
-        return DailyMealPlan(
-          date: date,
-          meals: [],
-        );
+      if (json['meals'] == null || json['meals'] is! List) {
+        return DailyMealPlan(date: date, meals: []);
       }
 
       // Safely convert and map the meals
@@ -123,17 +121,11 @@ class DailyMealPlan {
         }
       }
 
-      return DailyMealPlan(
-        date: date,
-        meals: meals,
-      );
+      return DailyMealPlan(date: date, meals: meals);
     } catch (e) {
       print('Error parsing DailyMealPlan from JSON: $e');
       // Return a default plan if parsing fails
-      return DailyMealPlan(
-        date: DateTime.now(),
-        meals: [],
-      );
+      return DailyMealPlan(date: DateTime.now(), meals: []);
     }
   }
 
@@ -149,26 +141,25 @@ class WeeklyMealPlan {
   final List<DailyMealPlan> dailyPlans;
   final String? generatedFor; // User profile information this was generated for
 
-  WeeklyMealPlan({
-    required this.dailyPlans,
-    this.generatedFor,
-  });
+  WeeklyMealPlan({required this.dailyPlans, this.generatedFor});
 
   factory WeeklyMealPlan.fromJson(Map<String, dynamic> json) {
     try {
       // Check if dailyPlans exists and is a list
-      if (json['dailyPlans'] == null || !(json['dailyPlans'] is List) || (json['dailyPlans'] as List).isEmpty) {
+      if (json['dailyPlans'] == null ||
+          json['dailyPlans'] is! List ||
+          (json['dailyPlans'] as List).isEmpty) {
         // If no dailyPlans or invalid format, create a default weekly plan with current week
         final today = DateTime.now();
         final weekStart = today.subtract(Duration(days: today.weekday - 1));
 
         return WeeklyMealPlan(
           dailyPlans: List.generate(
-            7, 
+            7,
             (index) => DailyMealPlan(
               date: weekStart.add(Duration(days: index)),
               meals: [],
-            )
+            ),
           ),
           generatedFor: json['generatedFor'],
         );
@@ -187,11 +178,11 @@ class WeeklyMealPlan {
         final today = DateTime.now();
         final weekStart = today.subtract(Duration(days: today.weekday - 1));
         plans = List.generate(
-          7, 
+          7,
           (index) => DailyMealPlan(
             date: weekStart.add(Duration(days: index)),
             meals: [],
-          )
+          ),
         );
       }
 
@@ -207,11 +198,11 @@ class WeeklyMealPlan {
 
       return WeeklyMealPlan(
         dailyPlans: List.generate(
-          7, 
+          7,
           (index) => DailyMealPlan(
             date: weekStart.add(Duration(days: index)),
             meals: [],
-          )
+          ),
         ),
         generatedFor: 'Error parsing meal plan',
       );

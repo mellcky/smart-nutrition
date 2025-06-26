@@ -336,8 +336,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Theme.of(context).colorScheme.background.withOpacity(0.4),
-                    Theme.of(context).colorScheme.background,
+                    Theme.of(context).colorScheme.surface.withOpacity(0.4),
+                    Theme.of(context).colorScheme.surface,
                   ],
                 ),
               ),
@@ -385,7 +385,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   // Cache the segments for better performance
   static const _segments = [
-    ButtonSegment(value: 'Nutrition AI', label: Text('Nutrition AI')),
+    ButtonSegment(value: 'Nutrition AI', label: Text('AI bot')),
     ButtonSegment(value: 'Dietician', label: Text('Dietician')),
   ];
 
@@ -432,7 +432,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
       color:
           isSentByUser
               ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceVariant,
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.only(
         topLeft: const Radius.circular(20),
         topRight: const Radius.circular(20),
@@ -590,7 +590,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
                           color: Colors.grey.shade600,
                         ),
                         filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceVariant,
+                        fillColor:
+                            Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                         border: _inputBorder,
                         enabledBorder: _inputBorder,
                         focusedBorder: _inputBorder,

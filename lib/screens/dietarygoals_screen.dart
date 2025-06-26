@@ -1,5 +1,4 @@
 import 'package:diet_app/screens/name_screen.dart';
-import 'package:diet_app/screens/summarize_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '/providers/userprofile_provider.dart';
@@ -19,7 +18,7 @@ class _DietaryGoalsScreenState extends State<DietaryGoalsScreen> {
     '🍽️ Weight Gain ',
   ];
 
-  List<String> _selectedGoals = [];
+  final List<String> _selectedGoals = [];
 
   @override
   Widget build(BuildContext context) {
