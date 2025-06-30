@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:diet_app/providers/fooditem_provider.dart';
 import 'package:diet_app/models/food_item.dart';
+import 'package:diet_app/models/water_log.dart';
 import '/db/user_database_helper.dart';
 
 class LoggingScreen extends StatefulWidget {
@@ -516,10 +517,55 @@ class _WaterLogDialogState extends State<WaterLogDialog> {
     });
   }
 
-  void _logWater() {
-    // Implement logging logic here
-    print('Logged $_value $_unit of water');
-    Navigator.of(context).pop();
+  void _logWater() async {
+    try {
+      // Convert to milliliters if unit is glass
+      double amountInMl = _unit == 'glass' ? _value * 250 : _value.toDouble();
+
+      // Create a WaterLog object
+      final waterLog = WaterLog(
+        amount: amountInMl,
+        timestamp: DateTime.now(),
+      );
+
+      // Save to database
+      final db = UserDatabaseHelper();
+      final result = await db.insertWaterLog(waterLog);
+
+      if (!mounted) return;
+
+      if (result > 0) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logged $_value $_unit of water'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        Navigator.of(context).pop();
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to log water. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override

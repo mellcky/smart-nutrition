@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:diet_app/providers/fooditem_provider.dart';
 import 'package:diet_app/providers/userprofile_provider.dart';
 import 'package:diet_app/utils/calorie_calculator.dart';
+import 'package:diet_app/utils/nutrition_calculator.dart';
 import 'package:diet_app/models/food_item.dart';
+import 'package:diet_app/db/user_database_helper.dart';
 import 'package:intl/intl.dart';
 
 class TrackerScreen extends StatefulWidget {
@@ -16,12 +18,15 @@ class TrackerScreen extends StatefulWidget {
 class _TrackerScreenState extends State<TrackerScreen> {
   late DateTime selectedDate;
   late List<DateTime> weekDates;
+  double waterIntake = 0; // in milliliters
+  double waterGoal = 0; // will be calculated based on calorie goal
 
   @override
   void initState() {
     super.initState();
     selectedDate = DateTime.now();
     _generateWeekDates(selectedDate);
+    _loadWaterData();
   }
 
   void _generateWeekDates(DateTime fromDate) {
@@ -30,11 +35,20 @@ class _TrackerScreenState extends State<TrackerScreen> {
     weekDates = List.generate(7, (index) => monday.add(Duration(days: index)));
   }
 
+  Future<void> _loadWaterData() async {
+    final db = UserDatabaseHelper();
+    final totalWater = await db.getTotalWaterForDate(selectedDate);
+    setState(() {
+      waterIntake = totalWater;
+    });
+  }
+
   void _selectDate(DateTime date) {
     setState(() {
       selectedDate = date;
       _generateWeekDates(date);
     });
+    _loadWaterData();
   }
 
   bool isSameDate(DateTime a, DateTime b) {
@@ -62,6 +76,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
       weightKg: weight ?? 70,
       activityLevel: activityLevel ?? 'moderate',
     );
+
+    // Calculate water goal based on calorie goal
+    waterGoal = NutritionCalculator.calculateWaterIntake(totalCaloriesGoal);
 
     // Calculate micronutrient totals for the selected date
     final Map<String, double> micronutrients = {
@@ -179,6 +196,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
                       carbs: foodItemProvider.getTotalCarbs(selectedDate),
                       fats: foodItemProvider.getTotalFats(selectedDate),
                     ),
+                    const SizedBox(height: 20),
+                    _buildWaterTrackingCard(),
                     const SizedBox(height: 20),
                     MicronutrientCards(micronutrients: micronutrients),
                   ],
@@ -376,6 +395,94 @@ class _TrackerScreenState extends State<TrackerScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildWaterTrackingCard() {
+    double progress = waterIntake / waterGoal;
+    int glassesCount = NutritionCalculator.mlToGlasses(waterIntake);
+    int glassesGoal = NutritionCalculator.mlToGlasses(waterGoal);
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      color: Colors.grey[150],
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.water_drop, color: Colors.blue, size: 24),
+                const SizedBox(width: 8),
+                const Text(
+                  'Water Intake',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${waterIntake.toStringAsFixed(0)} ml / ${waterGoal.toStringAsFixed(0)} ml',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$glassesCount of $glassesGoal glasses',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          value: progress.clamp(0.0, 1.0),
+                          minHeight: 10,
+                          backgroundColor: Colors.blue.withOpacity(0.15),
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: _buildWaterGlassesIndicator(glassesCount, glassesGoal),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWaterGlassesIndicator(int count, int goal) {
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: List.generate(goal, (index) {
+        bool filled = index < count;
+        return Icon(
+          Icons.water_drop,
+          color: filled ? Colors.blue : Colors.blue.withOpacity(0.2),
+          size: 20,
+        );
+      }),
     );
   }
 }

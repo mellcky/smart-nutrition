@@ -218,13 +218,23 @@ class _ConnectScreenState extends State<ConnectScreen> {
       } catch (e) {
         // Only update state if the widget is still mounted
         if (mounted) {
+          String errorMessage;
+
+          // Check if the error is related to quota exceeded
+          if (e.toString().toLowerCase().contains('quota exceeded') || 
+              e.toString().contains('429') || 
+              e.toString().toLowerCase().contains('too many requests')) {
+            errorMessage = "You've reached your free tier limit for Gemini API. Please try again later. / Umefika kikomo cha matumizi ya bure ya Gemini API. Tafadhali jaribu tena baadaye.";
+          } else {
+            errorMessage = "Sorry, I couldn't process your question. / Samahani, sikuweza kuchakata swali lako. Tafadhali jaribu tena.";
+          }
+
           setState(() {
             _isTyping = false;
             _messages.add(
               ChatMessage(
                 id: '${messageId}_error',
-                text:
-                    "Sorry, I couldn't process your question. / Samahani, sikuweza kuchakata swali lako. Tafadhali jaribu tena.",
+                text: errorMessage,
                 isSentByUser: false,
                 time: DateTime.now(),
               ),
@@ -318,12 +328,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
           _showScrollToBottomButton
               ? FloatingActionButton(
                 mini: true,
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                backgroundColor: Colors.grey.shade300,
                 onPressed: _scrollToBottom,
-                child: Icon(
-                  Icons.arrow_downward,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
+                child: Icon(Icons.arrow_downward, color: Colors.grey.shade700),
               )
               : null,
       body: Column(
@@ -410,11 +417,27 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   _scrollToBottom();
                 }
               },
-              // Add style for better performance
+              // Add style for better performance and use grey shades
               style: ButtonStyle(
                 // Use MaterialStateProperty.all for better performance
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
+                backgroundColor: WidgetStateProperty.resolveWith<Color>((
+                  Set<WidgetState> states,
+                ) {
+                  if (states.contains(WidgetState.selected)) {
+                    return Colors.grey.shade400;
+                  }
+                  return Colors.grey.shade200;
+                }),
+                foregroundColor: WidgetStateProperty.resolveWith<Color>((
+                  Set<WidgetState> states,
+                ) {
+                  if (states.contains(WidgetState.selected)) {
+                    return Colors.grey.shade800;
+                  }
+                  return Colors.grey.shade600;
+                }),
               ),
             ),
           ),
@@ -427,12 +450,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
     final isSentByUser = message.isSentByUser;
     final time = _timeFormat.format(message.time);
 
-    // Create a cached bubble style for better performance
+    // Create a cached bubble style for better performance with appropriate colors
     final bubbleDecoration = BoxDecoration(
-      color:
-          isSentByUser
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: isSentByUser ? Colors.grey.shade300 : Colors.green.shade500,
       borderRadius: BorderRadius.only(
         topLeft: const Radius.circular(20),
         topRight: const Radius.circular(20),
@@ -444,14 +464,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
     );
 
     final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-      color:
-          isSentByUser
-              ? Theme.of(context).colorScheme.onPrimaryContainer
-              : Theme.of(context).colorScheme.onSurfaceVariant,
+      color: isSentByUser ? Colors.grey.shade800 : Colors.white,
     );
 
     final timeStyle = TextStyle(
-      color: Colors.grey.shade500,
+      color:
+          isSentByUser ? Colors.grey.shade500 : Colors.white.withOpacity(0.7),
       fontSize: 10,
       fontWeight: FontWeight.w300,
     );
@@ -465,6 +483,15 @@ class _ConnectScreenState extends State<ConnectScreen> {
               isSentByUser ? MainAxisAlignment.end : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            if (!isSentByUser)
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Icon(
+                  Icons.smart_toy,
+                  color: Colors.grey.shade600,
+                  size: 20,
+                ),
+              ),
             Flexible(
               child: Container(
                 constraints: BoxConstraints(
@@ -485,6 +512,15 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 ),
               ),
             ),
+            if (isSentByUser)
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: Icon(
+                  Icons.person,
+                  color: Colors.grey.shade600,
+                  size: 20,
+                ),
+              ),
           ],
         ),
       ),
@@ -602,7 +638,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         prefixIcon: IconButton(
                           icon: Icon(
                             Icons.camera_alt,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: Colors.grey.shade600,
                           ),
                           onPressed: () => _pickImage(ImageSource.camera),
                           padding: const EdgeInsets.all(8),
@@ -615,7 +651,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             Icons.photo,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: Colors.grey.shade600,
                           ),
                           onPressed: () => _pickImage(ImageSource.gallery),
                           padding: const EdgeInsets.all(8),
@@ -631,9 +667,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       onSubmitted: (text) => _sendMessage(text: text),
                     ),
                   ),
-                  const SizedBox(width: 8),
 
-                  // Send button
+                  // Send button outside the text field
                   ValueListenableBuilder<TextEditingValue>(
                     valueListenable: _messageController,
                     builder: (_, value, __) {
@@ -641,10 +676,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       return IconButton(
                         icon: Icon(
                           Icons.send,
-                          color:
-                              isEnabled
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.grey.shade500,
+                          color: isEnabled
+                              ? Colors.grey.shade700
+                              : Colors.grey.shade400,
                         ),
                         // Optimize touch target
                         padding: const EdgeInsets.all(8),
@@ -652,10 +686,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
                           minWidth: 36,
                           minHeight: 36,
                         ),
-                        onPressed:
-                            isEnabled
-                                ? () => _sendMessage(text: value.text.trim())
-                                : null,
+                        onPressed: isEnabled
+                            ? () => _sendMessage(text: value.text.trim())
+                            : null,
                       );
                     },
                   ),

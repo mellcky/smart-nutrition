@@ -1,10 +1,10 @@
 // import 'package:diet_app/screens/welcome_screen.dart';
+import 'package:diet_app/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // import 'package:showcaseview/showcaseview.dart';
 
-import 'package:diet_app/screens/mainentry_screen.dart';
 import 'package:diet_app/providers/userprofile_provider.dart';
 import 'package:diet_app/providers/progress_provider.dart';
 import 'package:diet_app/providers/fooditem_provider.dart';
@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
           selectedIconTheme: IconThemeData(color: Colors.green),
         ),
       ),
-      home: MainEntryScreen(),
+      home: WelcomeScreen(),
     );
   }
 }

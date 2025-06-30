@@ -100,6 +100,36 @@ class UserProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Add a single dietary restriction to the list
+  Future<void> addDietaryRestriction(String restriction) async {
+    _profile ??= UserProfile();
+    _profile!.dietaryRestrictions ??= [];
+
+    // Don't add if it already exists
+    if (!_profile!.dietaryRestrictions!.contains(restriction)) {
+      _profile!.dietaryRestrictions!.add(restriction);
+      _profileUpdated = true;
+      notifyListeners();
+
+      // Save to database immediately for real-time updates
+      await saveUserProfile();
+    }
+  }
+
+  /// Remove a single dietary restriction from the list
+  Future<void> removeDietaryRestriction(String restriction) async {
+    if (_profile == null || _profile!.dietaryRestrictions == null) return;
+
+    if (_profile!.dietaryRestrictions!.contains(restriction)) {
+      _profile!.dietaryRestrictions!.remove(restriction);
+      _profileUpdated = true;
+      notifyListeners();
+
+      // Save to database immediately for real-time updates
+      await saveUserProfile();
+    }
+  }
+
   void updateHealthConditions(List<String> conditions) {
     _profile ??= UserProfile();
     _profile!.healthConditions = conditions;

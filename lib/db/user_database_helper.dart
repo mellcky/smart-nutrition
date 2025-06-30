@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/user_profile.dart';
 import '/models/food_item.dart';
+import '/models/water_log.dart';
 
 class UserDatabaseHelper {
   static final UserDatabaseHelper _instance = UserDatabaseHelper._internal();
@@ -13,6 +14,7 @@ class UserDatabaseHelper {
   // Table name
   final String tableUser = 'user_profile';
   final String tableFoodItems = 'food_items';
+  final String tableWaterLogs = 'water_logs';
 
   // Initialize the database
   Future<Database> get database async {
@@ -26,7 +28,27 @@ class UserDatabaseHelper {
     String dbPath = await getDatabasesPath();
     String path = join(dbPath, 'user_profile.db');
 
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    return await openDatabase(
+      path, 
+      version: 2, 
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+  }
+
+  // Handle database upgrades
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Create water_logs table if upgrading from version 1
+      await db.execute('''
+        CREATE TABLE $tableWaterLogs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          amount REAL,
+          timestamp INTEGER
+        )
+      ''');
+      print('Created water_logs table during upgrade from version $oldVersion to $newVersion');
+    }
   }
 
   // SQL to create the user_profile table
@@ -75,6 +97,14 @@ class UserDatabaseHelper {
         mealType TEXT,      
         timestamp INTEGER,
         imagePath TEXT 
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE $tableWaterLogs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        amount REAL,
+        timestamp INTEGER
       )
     ''');
   }
@@ -160,5 +190,95 @@ class UserDatabaseHelper {
       ],
     );
     return List.generate(maps.length, (i) => FoodItem.fromMap(maps[i]));
+  }
+
+  // Water logging methods
+  Future<int> insertWaterLog(WaterLog waterLog) async {
+    try {
+      final db = await database;
+
+      // Use a transaction to ensure database operations are atomic
+      return await db.transaction((txn) async {
+        return await txn.insert(tableWaterLogs, waterLog.toMap());
+      });
+    } catch (e) {
+      print('Error inserting water log: $e');
+      return -1;
+    }
+  }
+
+  Future<List<WaterLog>> getWaterLogs() async {
+    try {
+      final db = await database;
+
+      // Use a transaction to ensure database operations are atomic
+      return await db.transaction((txn) async {
+        final List<Map<String, dynamic>> maps = await txn.query(tableWaterLogs);
+        return List.generate(maps.length, (i) => WaterLog.fromMap(maps[i]));
+      });
+    } catch (e) {
+      print('Error getting water logs: $e');
+      return [];
+    }
+  }
+
+  Future<List<WaterLog>> getWaterLogsByDate(DateTime date) async {
+    try {
+      final startOfDay = DateTime(date.year, date.month, date.day);
+      final endOfDay = startOfDay.add(Duration(days: 1));
+
+      final db = await database;
+
+      // Use a transaction to ensure database operations are atomic
+      return await db.transaction((txn) async {
+        final List<Map<String, dynamic>> maps = await txn.query(
+          tableWaterLogs,
+          where: 'timestamp >= ? AND timestamp < ?',
+          whereArgs: [
+            startOfDay.millisecondsSinceEpoch,
+            endOfDay.millisecondsSinceEpoch,
+          ],
+        );
+        return List.generate(maps.length, (i) => WaterLog.fromMap(maps[i]));
+      });
+    } catch (e) {
+      print('Error getting water logs by date: $e');
+      return [];
+    }
+  }
+
+  Future<double> getTotalWaterForDate(DateTime date) async {
+    try {
+      final waterLogs = await getWaterLogsByDate(date);
+      return waterLogs.fold<double>(0.0, (sum, log) => sum + log.amount);
+    } catch (e) {
+      print('Error getting total water for date: $e');
+      return 0.0;
+    }
+  }
+
+  Future<List<WaterLog>> getWaterLogsByDateRange(DateTime startDate, DateTime endDate) async {
+    try {
+      final start = DateTime(startDate.year, startDate.month, startDate.day);
+      final end = DateTime(endDate.year, endDate.month, endDate.day).add(Duration(days: 1));
+
+      final db = await database;
+
+      // Use a transaction to ensure database operations are atomic
+      return await db.transaction((txn) async {
+        final List<Map<String, dynamic>> maps = await txn.query(
+          tableWaterLogs,
+          where: 'timestamp >= ? AND timestamp < ?',
+          whereArgs: [
+            start.millisecondsSinceEpoch,
+            end.millisecondsSinceEpoch,
+          ],
+        );
+        return List.generate(maps.length, (i) => WaterLog.fromMap(maps[i]));
+      });
+    } catch (e) {
+      print('Error getting water logs by date range: $e');
+      return [];
+    }
   }
 }

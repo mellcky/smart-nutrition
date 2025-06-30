@@ -1,5 +1,6 @@
 import 'package:diet_app/screens/mainentry_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '/providers/userprofile_provider.dart';
 
@@ -185,7 +186,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                                               ),
                                                         ),
                                                         backgroundColor:
-                                                            Colors.purple[50],
+                                                            Colors.green[50],
                                                       );
                                                     })
                                                     .toList()
@@ -229,7 +230,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                 ),
                             IconButton(
                               icon: const Icon(Icons.edit, size: 20),
-                              color: Colors.deepPurple,
+                              color: Colors.green.shade600,
                               onPressed:
                                   () =>
                                       _analysisDone
@@ -254,7 +255,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       value: (_currentIndex + 1) / summaryData.length,
                       minHeight: 10,
                       backgroundColor: Colors.grey[300],
-                      color: const Color.fromARGB(255, 126, 75, 146),
+                      color: Colors.green.shade600,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -273,27 +274,55 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       onPressed:
                           _analysisDone
                               ? () {
+                                // Add haptic feedback
+                                HapticFeedback.mediumImpact();
+
+                                // Use PageRouteBuilder with slide transition
                                 Navigator.pushReplacement(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const MainEntryScreen(),
+                                  PageRouteBuilder(
+                                    pageBuilder: (context, animation, secondaryAnimation) => 
+                                      const MainEntryScreen(),
+                                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                      const begin = Offset(1.0, 0.0);
+                                      const end = Offset.zero;
+                                      const curve = Curves.easeInOutQuart;
+
+                                      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                      var offsetAnimation = animation.drive(tween);
+
+                                      return SlideTransition(
+                                        position: offsetAnimation,
+                                        child: child,
+                                      );
+                                    },
+                                    transitionDuration: const Duration(milliseconds: 500),
                                   ),
                                 );
                               }
                               : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: Colors.green.shade600,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.green.shade200,
+                        disabledForegroundColor: Colors.white70,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 12,
+                          horizontal: 50,
+                          vertical: 15,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(30),
                         ),
+                        elevation: 5,
+                        shadowColor: Colors.green.shade200,
                       ),
                       child: const Text(
-                        "Confirm",
-                        style: TextStyle(fontSize: 16, color: Colors.white),
+                        "Continue",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
                       ),
                     ),
                   ),

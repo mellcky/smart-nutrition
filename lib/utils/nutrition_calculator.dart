@@ -1,76 +1,189 @@
-// lib/utils/nutrition_calculator.dart
 import '../models/food_item.dart';
-import '../models/progress_model.dart';
-import '../providers/fooditem_provider.dart';
+import 'package:intl/intl.dart';
 
-class HealthRiskAnalyzer {
-  static const double maxDailySugar = 36; // WHO recommendation (9 tsp)
-  static const double maxDailySodium = 2300; // mg
-  static const double maxDailySatFat = 22; // g (10% of 2000 cal diet)
+class NutritionCalculator {
+  // Calculate daily nutrition summary for a list of food items
+  static Map<String, double> calculateDailyNutrition(List<FoodItem> foodItems) {
+    double totalCalories = 0;
+    double totalProtein = 0;
+    double totalCarbs = 0;
+    double totalFats = 0;
+    double totalSugar = 0;
+    double totalFiber = 0;
+    double totalSodium = 0;
+    double totalSaturatedFat = 0;
 
-  static List<HealthInsight> analyzeRisks(List<FoodItem> items) {
-    final insights = <HealthInsight>[];
-    final totalSugar = items.fold(0.0, (sum, item) => sum + item.sugar);
-    final totalSodium = items.fold(0.0, (sum, item) => sum + item.sodium);
-    final totalSatFat = items.fold(0.0, (sum, item) => sum + item.saturatedFat);
-
-    if (totalSugar > maxDailySugar * 7) {
-      insights.add(
-        HealthInsight(
-          "⚠️ You've consumed ${totalSugar.toStringAsFixed(0)}g of sugar this week - "
-          "exceeds WHO recommendations by ${(totalSugar / (maxDailySugar * 7) * 100).toStringAsFixed(0)}%",
-          AlertLevel.warning,
-        ),
-      );
+    for (var item in foodItems) {
+      totalCalories += item.calories;
+      totalProtein += item.protein;
+      totalCarbs += item.carbs;
+      totalFats += item.fats;
+      totalSugar += item.sugar;
+      totalFiber += item.fiber;
+      totalSodium += item.sodium;
+      totalSaturatedFat += item.saturatedFat;
     }
 
-    if (totalSodium > maxDailySodium * 7) {
-      insights.add(
-        HealthInsight(
-          "🧂 High sodium: ${totalSodium.toStringAsFixed(0)}mg this week. "
-          "May increase hypertension risk",
-          AlertLevel.critical,
-        ),
-      );
-    }
-
-    if (insights.isEmpty) {
-      insights.add(
-        HealthInsight(
-          "✅ Great job! Your nutrition is within healthy ranges",
-          AlertLevel.info,
-        ),
-      );
-    }
-
-    return insights;
+    return {
+      'calories': totalCalories,
+      'protein': totalProtein,
+      'carbs': totalCarbs,
+      'fats': totalFats,
+      'sugar': totalSugar,
+      'fiber': totalFiber,
+      'sodium': totalSodium,
+      'saturatedFat': totalSaturatedFat,
+    };
   }
-}
 
-class NutritionAggregator {
-  static List<NutritionSummary> aggregateWeekly(
-    FoodItemProvider provider,
-    DateTime startDate,
-  ) {
-    final summaries = <NutritionSummary>[];
-    final endDate = startDate.add(const Duration(days: 6));
+  // Calculate weekly nutrition summary
+  static Map<String, Map<String, double>> calculateWeeklySummary(List<FoodItem> foodItems) {
+    // Group food items by day
+    Map<String, List<FoodItem>> foodItemsByDay = {};
 
-    for (int i = 0; i < 7; i++) {
-      final date = startDate.add(Duration(days: i));
-      summaries.add(
-        NutritionSummary(
-          date: date,
-          calories: provider.getTotalCalories(date),
-          protein: provider.getTotalProtein(date),
-          carbs: provider.getTotalCarbs(date),
-          fats: provider.getTotalFats(date),
-          sugar: provider.getTotalSugar(date),
-          sodium: provider.getTotalSodium(date),
-          saturatedFat: provider.getTotalSaturatedFat(date),
-        ),
-      );
+    for (var item in foodItems) {
+      String dateKey = DateFormat('yyyy-MM-dd').format(item.timestamp);
+      if (!foodItemsByDay.containsKey(dateKey)) {
+        foodItemsByDay[dateKey] = [];
+      }
+      foodItemsByDay[dateKey]!.add(item);
     }
 
-    return summaries;
+    // Calculate daily nutrition for each day
+    Map<String, Map<String, double>> weeklySummary = {};
+
+    foodItemsByDay.forEach((dateKey, items) {
+      weeklySummary[dateKey] = calculateDailyNutrition(items);
+    });
+
+    return weeklySummary;
+  }
+
+  // Calculate monthly nutrition summary
+  static Map<String, Map<String, double>> calculateMonthlySummary(List<FoodItem> foodItems) {
+    // Group food items by week
+    Map<String, List<FoodItem>> foodItemsByWeek = {};
+
+    for (var item in foodItems) {
+      // Get the week number (1-5) within the month
+      int weekOfMonth = ((item.timestamp.day - 1) ~/ 7) + 1;
+      String weekKey = '${item.timestamp.year}-${item.timestamp.month}-W$weekOfMonth';
+
+      if (!foodItemsByWeek.containsKey(weekKey)) {
+        foodItemsByWeek[weekKey] = [];
+      }
+      foodItemsByWeek[weekKey]!.add(item);
+    }
+
+    // Calculate nutrition for each week
+    Map<String, Map<String, double>> monthlySummary = {};
+
+    foodItemsByWeek.forEach((weekKey, items) {
+      monthlySummary[weekKey] = calculateDailyNutrition(items);
+    });
+
+    return monthlySummary;
+  }
+
+  // Get macronutrient percentages (protein, carbs, fats)
+  static Map<String, double> calculateMacroPercentages(double protein, double carbs, double fats) {
+    double total = protein + carbs + fats;
+
+    if (total == 0) {
+      return {
+        'protein': 0,
+        'carbs': 0,
+        'fats': 0,
+      };
+    }
+
+    return {
+      'protein': (protein / total) * 100,
+      'carbs': (carbs / total) * 100,
+      'fats': (fats / total) * 100,
+    };
+  }
+
+  // Calculate average daily nutrition for a period
+  static Map<String, double> calculateAverageDailyNutrition(List<FoodItem> foodItems) {
+    if (foodItems.isEmpty) {
+      return {
+        'calories': 0,
+        'protein': 0,
+        'carbs': 0,
+        'fats': 0,
+        'sugar': 0,
+        'fiber': 0,
+        'sodium': 0,
+        'saturatedFat': 0,
+      };
+    }
+
+    // Get unique days
+    Set<String> uniqueDays = foodItems.map((item) => 
+      DateFormat('yyyy-MM-dd').format(item.timestamp)
+    ).toSet();
+
+    int daysCount = uniqueDays.length;
+
+    // Calculate total nutrition
+    Map<String, double> totalNutrition = calculateDailyNutrition(foodItems);
+
+    // Calculate average
+    Map<String, double> averageNutrition = {};
+
+    totalNutrition.forEach((nutrient, value) {
+      averageNutrition[nutrient] = value / daysCount;
+    });
+
+    return averageNutrition;
+  }
+
+  // Get nutrition data for charting (returns data points for each day)
+  static List<Map<String, dynamic>> getNutritionDataForChart(
+    List<FoodItem> foodItems, 
+    String nutrientType
+  ) {
+    // Group food items by day
+    Map<String, List<FoodItem>> foodItemsByDay = {};
+
+    for (var item in foodItems) {
+      String dateKey = DateFormat('yyyy-MM-dd').format(item.timestamp);
+      if (!foodItemsByDay.containsKey(dateKey)) {
+        foodItemsByDay[dateKey] = [];
+      }
+      foodItemsByDay[dateKey]!.add(item);
+    }
+
+    // Calculate daily nutrition for each day
+    List<Map<String, dynamic>> chartData = [];
+
+    foodItemsByDay.forEach((dateKey, items) {
+      Map<String, double> dailyNutrition = calculateDailyNutrition(items);
+
+      // Parse the date
+      DateTime date = DateFormat('yyyy-MM-dd').parse(dateKey);
+
+      // Add data point
+      chartData.add({
+        'date': date,
+        'value': dailyNutrition[nutrientType] ?? 0,
+      });
+    });
+
+    // Sort by date
+    chartData.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+
+    return chartData;
+  }
+  // Calculate recommended water intake based on calorie goal
+  static double calculateWaterIntake(double calorieGoal) {
+    // Formula: 1 ml of water per calorie
+    return calorieGoal;
+  }
+
+  // Convert milliliters to glasses (1 glass = 250 ml)
+  static int mlToGlasses(double milliliters) {
+    return (milliliters / 250).round();
   }
 }

@@ -24,8 +24,46 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   DailyMealPlan? dailyMealPlan;
   WeeklyMealPlan? weeklyMealPlan;
 
+  // Cache for meal plans to improve loading speed
+  final Map<String, dynamic> _mealPlanCache = {};
+
   // Initialize the start of the current week (Monday)
   late DateTime weekStart = today.subtract(Duration(days: today.weekday - 1));
+
+  // For navigation between weeks/months
+  void navigateToPreviousDay() {
+    setState(() {
+      today = today.subtract(const Duration(days: 1));
+      _loadMealPlan();
+    });
+  }
+
+  void navigateToNextDay() {
+    setState(() {
+      today = today.add(const Duration(days: 1));
+      _loadMealPlan();
+    });
+  }
+
+  void navigateToPreviousWeek() {
+    setState(() {
+      weekStart = weekStart.subtract(const Duration(days: 7));
+      if (!isWeeklyView) {
+        today = today.subtract(const Duration(days: 7));
+      }
+      _loadMealPlan();
+    });
+  }
+
+  void navigateToNextWeek() {
+    setState(() {
+      weekStart = weekStart.add(const Duration(days: 7));
+      if (!isWeeklyView) {
+        today = today.add(const Duration(days: 7));
+      }
+      _loadMealPlan();
+    });
+  }
 
   @override
   void initState() {
@@ -46,9 +84,17 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   }
 
   void _handleProfileUpdate() {
-    setState(() {
-      _needsRefresh = true;
-    });
+    // Check if the profile was updated
+    final provider = Provider.of<UserProfileProvider>(context, listen: false);
+    if (provider.profileUpdated) {
+      // Automatically refresh the meal plan when the profile changes
+      _loadMealPlan();
+
+      // Also set the flag in case the automatic refresh fails
+      setState(() {
+        _needsRefresh = true;
+      });
+    }
   }
 
   void shiftWeek(int offset) {
@@ -61,6 +107,42 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return List.generate(7, (index) => weekStart.add(Duration(days: index)));
   }
 
+  // Generate a unique cache key based on profile data and view type
+  String _generateCacheKey(UserProfile profile, bool isWeekly) {
+    // Include relevant profile data that would affect meal plan generation
+    final StringBuilder = StringBuffer();
+
+    // Add view type
+    StringBuilder.write(isWeekly ? 'weekly' : 'daily');
+
+    // Add basic profile information
+    if (profile.gender != null) StringBuilder.write('_${profile.gender}');
+    if (profile.age != null) StringBuilder.write('_${profile.age}');
+    if (profile.weight != null) StringBuilder.write('_w${profile.weight!.round()}');
+    if (profile.height != null) StringBuilder.write('_h${profile.height!.round()}');
+
+    // Add health conditions and dietary restrictions (sorted to ensure consistent key)
+    if (profile.healthConditions != null && profile.healthConditions!.isNotEmpty) {
+      final sortedConditions = List<String>.from(profile.healthConditions!)..sort();
+      StringBuilder.write('_hc${sortedConditions.join('')}');
+    }
+
+    if (profile.dietaryRestrictions != null && profile.dietaryRestrictions!.isNotEmpty) {
+      final sortedRestrictions = List<String>.from(profile.dietaryRestrictions!)..sort();
+      StringBuilder.write('_dr${sortedRestrictions.join('')}');
+    }
+
+    // Add date for daily view
+    if (!isWeekly) {
+      StringBuilder.write('_${DateFormat('yyyy-MM-dd').format(today)}');
+    } else {
+      // For weekly view, add the start of the week
+      StringBuilder.write('_${DateFormat('yyyy-MM-dd').format(weekStart)}');
+    }
+
+    return StringBuilder.toString();
+  }
+
   // Load meal plan data based on user profile
   Future<void> _loadMealPlan() async {
     setState(() {
@@ -70,10 +152,14 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     });
 
     try {
+      // Get the user profile provider
       final userProfileProvider = Provider.of<UserProfileProvider>(
         context,
         listen: false,
       );
+
+      // Reset the profile updated flag in the provider
+      userProfileProvider.resetUpdateFlag();
 
       // Make sure user profile is loaded
       if (!userProfileProvider.isLoaded) {
@@ -86,25 +172,48 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         throw Exception('User profile not found');
       }
 
+      // Create a cache key based on profile data and view type
+      final String cacheKey = _generateCacheKey(profile, isWeeklyView);
+
+      // Check if we have a cached meal plan
+      if (_mealPlanCache.containsKey(cacheKey) && !_needsRefresh) {
+        // Use cached data
+        if (isWeeklyView) {
+          weeklyMealPlan = _mealPlanCache[cacheKey] as WeeklyMealPlan;
+        } else {
+          dailyMealPlan = _mealPlanCache[cacheKey] as DailyMealPlan;
+        }
+        print('Using cached meal plan');
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
       // Generate meal plan using Gemini
       final response = await GeminiService.generateMealPlan(
         profile,
         isWeekly: isWeeklyView,
+        date: isWeeklyView ? weekStart : today,
       );
 
       // Parse the response
       try {
         if (isWeeklyView) {
-          final result = GeminiService.parseMealPlanResponse(response, true);
+          final result = GeminiService.parseMealPlanResponse(response, true, profile);
           if (result is WeeklyMealPlan) {
             weeklyMealPlan = result;
+            // Cache the result
+            _mealPlanCache[cacheKey] = result;
           } else {
             throw Exception('Invalid weekly meal plan format');
           }
         } else {
-          final result = GeminiService.parseMealPlanResponse(response, false);
+          final result = GeminiService.parseMealPlanResponse(response, false, profile);
           if (result is DailyMealPlan) {
             dailyMealPlan = result;
+            // Cache the result
+            _mealPlanCache[cacheKey] = result;
           } else {
             throw Exception('Invalid daily meal plan format');
           }
@@ -158,75 +267,84 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               ),
             ),
 
-          // Toggle Buttons
+          // Navigation and Toggle Buttons
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      if (isWeeklyView) {
-                        setState(() {
-                          isWeeklyView = false;
-                          _loadMealPlan();
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color:
-                            !isWeeklyView
-                                ? Colors.grey.shade300
-                                : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.calendar_today, size: 18),
-                            const SizedBox(width: 8),
-                            const Text("Daily Plan"),
-                          ],
+
+
+                const SizedBox(height: 8),
+
+                // Toggle buttons row
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (isWeeklyView) {
+                            setState(() {
+                              isWeeklyView = false;
+                              _loadMealPlan();
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color:
+                                !isWeeklyView
+                                    ? Colors.grey.shade300
+                                    : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.calendar_today, size: 18),
+                                const SizedBox(width: 8),
+                                const Text("Daily Plan"),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      if (!isWeeklyView) {
-                        setState(() {
-                          isWeeklyView = true;
-                          _loadMealPlan();
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color:
-                            isWeeklyView
-                                ? Colors.grey.shade300
-                                : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.view_list, size: 18),
-                            const SizedBox(width: 8),
-                            const Text("Weekly Plan"),
-                          ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (!isWeeklyView) {
+                            setState(() {
+                              isWeeklyView = true;
+                              _loadMealPlan();
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color:
+                                isWeeklyView
+                                    ? Colors.grey.shade300
+                                    : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.view_list, size: 18),
+                                const SizedBox(width: 8),
+                                const Text("Weekly Plan"),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -259,8 +377,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                           onTap: () {
                             setState(() {
                               today = date;
-                              isWeeklyView =
-                                  false; // Ensure it stays in Daily Plan
+                              isWeeklyView = false; // Ensure it stays in Daily Plan
+                              _loadMealPlan(); // Reload meal plan for the selected date
                             });
                           },
                           child: Container(
@@ -521,10 +639,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                         : ListView(
                           padding: const EdgeInsets.all(8.0),
                           children: [
-                            // Weekly Summary Card
+
+                            // Tabular Weekly Meal Plan
                             Card(
                               margin: const EdgeInsets.only(bottom: 16),
-                              color: Colors.grey[150],
                               elevation: 2,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -535,266 +653,157 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Weekly Summary',
+                                      'Weekly Meal Plan',
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      children: [
-                                        // Average Calories
-                                        Column(
-                                          children: [
-                                            Icon(
-                                              Icons.local_fire_department,
-                                              size: 24,
-                                              color: Colors.red,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              '${(weeklyMealPlan!.dailyPlans.isEmpty ? 0 : weeklyMealPlan!.dailyPlans.fold(0.0, (sum, plan) => sum + plan.totalCalories) / weeklyMealPlan!.dailyPlans.length).round()}',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.red,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Avg. Calories',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[700],
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
+                                    const SizedBox(height: 16),
 
-                                        // Total Meals
-                                        Column(
-                                          children: [
-                                            Icon(
-                                              Icons.restaurant,
-                                              size: 24,
-                                              color: Colors.blue,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              '${weeklyMealPlan!.dailyPlans.fold(0, (sum, plan) => sum + plan.meals.where((meal) => meal.foodItems.isNotEmpty).length)}',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.blue,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Total Meals',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[700],
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
+                                    // Tabular layout
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: DataTable(
+                                        columnSpacing: 12,
+                                        headingRowHeight: 40,
+                                        dataRowHeight: 100,
+                                        border: TableBorder.all(
+                                          color: Colors.grey.shade300,
+                                          width: 1,
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
+                                        headingRowColor: WidgetStateProperty.all(
+                                          Colors.grey.shade100,
+                                        ),
+                                        columns: [
+                                          // Day column
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 80,
+                                              child: Center(
+                                                child: Text(
+                                                  'Day',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          // Meal type columns
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 120,
+                                              child: Center(
+                                                child: _buildCategoryTab(
+                                                  Icons.wb_sunny,
+                                                  'Breakfast',
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 120,
+                                              child: Center(
+                                                child: _buildCategoryTab(
+                                                  Icons.cloud,
+                                                  'Lunch',
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 120,
+                                              child: Center(
+                                                child: _buildCategoryTab(
+                                                  Icons.nightlight_round,
+                                                  'Dinner',
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 120,
+                                              child: Center(
+                                                child: _buildCategoryTab(
+                                                  Icons.timer,
+                                                  'Snacks',
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                        rows: weeklyMealPlan!.dailyPlans.map((dailyPlan) {
+                                          // Get day name and format date
+                                          String dayName = DateFormat('EEEE').format(dailyPlan.date);
+                                          String dateStr = DateFormat('MM/dd').format(dailyPlan.date);
 
-                                        // Food Items
-                                        Column(
-                                          children: [
-                                            Icon(
-                                              Icons.fastfood,
-                                              size: 24,
-                                              color: Colors.green,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              '${weeklyMealPlan!.dailyPlans.fold(0, (sum, plan) => sum + plan.meals.fold(0, (mealSum, meal) => mealSum + meal.foodItems.length))}',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.green,
+                                          // Find meals by type
+                                          Meal? breakfast = dailyPlan.meals.firstWhere(
+                                            (meal) => meal.mealType.toLowerCase() == 'breakfast',
+                                            orElse: () => Meal(mealType: 'Breakfast', foodItems: []),
+                                          );
+
+                                          Meal? lunch = dailyPlan.meals.firstWhere(
+                                            (meal) => meal.mealType.toLowerCase() == 'lunch',
+                                            orElse: () => Meal(mealType: 'Lunch', foodItems: []),
+                                          );
+
+                                          Meal? dinner = dailyPlan.meals.firstWhere(
+                                            (meal) => meal.mealType.toLowerCase() == 'dinner',
+                                            orElse: () => Meal(mealType: 'Dinner', foodItems: []),
+                                          );
+
+                                          Meal? snack = dailyPlan.meals.firstWhere(
+                                            (meal) => meal.mealType.toLowerCase() == 'snack' || 
+                                                     meal.mealType.toLowerCase() == 'snacks',
+                                            orElse: () => Meal(mealType: 'Snacks', foodItems: []),
+                                          );
+
+                                          return DataRow(
+                                            cells: [
+                                              // Day cell
+                                              DataCell(
+                                                SizedBox(
+                                                  width: 80,
+                                                  child: Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Text(
+                                                        dayName,
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                      Text(
+                                                        dateStr,
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: Colors.grey,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
                                               ),
-                                            ),
-                                            Text(
-                                              'Food Items',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[700],
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                              // Meal cells
+                                              DataCell(_buildWeeklyMealCell(breakfast)),
+                                              DataCell(_buildWeeklyMealCell(lunch)),
+                                              DataCell(_buildWeeklyMealCell(dinner)),
+                                              DataCell(_buildWeeklyMealCell(snack)),
+                                            ],
+                                          );
+                                        }).toList(),
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-
-                            // Day-by-day meal summary
-                            ...weeklyMealPlan!.dailyPlans.map((dailyPlan) {
-                              String dayName = DateFormat(
-                                'EEEE',
-                              ).format(dailyPlan.date);
-                              String dateStr = DateFormat(
-                                'MMM d',
-                              ).format(dailyPlan.date);
-
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Day header
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            '$dayName, $dateStr',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text(
-                                            '${dailyPlan.totalCalories.toInt()} kcal',
-                                            style: TextStyle(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const Divider(),
-
-                                      // Meal summaries
-                                      ...dailyPlan.meals.map((meal) {
-                                        // Skip empty meals
-                                        if (meal.foodItems.isEmpty) {
-                                          return const SizedBox.shrink();
-                                        }
-
-                                        // Determine icon based on meal type
-                                        IconData mealIcon;
-                                        switch (meal.mealType.toLowerCase()) {
-                                          case 'breakfast':
-                                            mealIcon = Icons.wb_sunny;
-                                            break;
-                                          case 'lunch':
-                                            mealIcon = Icons.cloud;
-                                            break;
-                                          case 'snack':
-                                          case 'snacks':
-                                            mealIcon = Icons.timer;
-                                            break;
-                                          case 'dinner':
-                                            mealIcon = Icons.nightlight_round;
-                                            break;
-                                          default:
-                                            mealIcon = Icons.restaurant;
-                                        }
-
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 8.0,
-                                          ),
-                                          child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              // Meal type icon
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 2.0,
-                                                  right: 8.0,
-                                                ),
-                                                child: Icon(
-                                                  mealIcon,
-                                                  size: 16,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-
-                                              // Meal content
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    // Meal type and calories
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-                                                      children: [
-                                                        Text(
-                                                          meal.mealType,
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          '${meal.totalCalories.toInt()} kcal',
-                                                          style: TextStyle(
-                                                            color: Colors.red,
-                                                            fontSize: 12,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-
-                                                    // Food items (limited to first 2 with "more" indicator)
-                                                    ...meal.foodItems
-                                                        .take(2)
-                                                        .map(
-                                                          (food) => Text(
-                                                            '• ${food.foodItem}',
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontSize: 14,
-                                                                ),
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                          ),
-                                                        ),
-                                                    if (meal.foodItems.length >
-                                                        2)
-                                                      Text(
-                                                        '+ ${meal.foodItems.length - 2} more items',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: Colors.grey,
-                                                          fontStyle:
-                                                              FontStyle.italic,
-                                                        ),
-                                                      ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      }),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }),
                           ],
                         ),
               ),
@@ -828,7 +837,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       );
     }
 
-    // Otherwise, show a summary of the meal
+    // Otherwise, show a summary of the meal with just food items (no instructions or health benefits)
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
       child: Column(
@@ -836,7 +845,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         children: [
           // Show the first food item as the main meal
           Text(
-            meal.foodItems.first.foodItem,
+            meal.foodItems.isNotEmpty && meal.foodItems.first.foodItem.isNotEmpty 
+                ? meal.foodItems.first.foodItem 
+                : meal.mealType,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.grey.shade800,
@@ -857,17 +868,20 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          // Show additional food items if any
-          if (meal.foodItems.length > 1)
-            Text(
-              '+${meal.foodItems.length - 1} more',
-              textAlign: TextAlign.center,
+          // List all food items without showing more/less
+          ...meal.foodItems.skip(1).map((foodItem) {
+            if (foodItem.foodItem.isEmpty) return const SizedBox.shrink();
+            return Text(
+              foodItem.foodItem,
+              textAlign: TextAlign.start,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: Colors.grey.shade700,
                 fontSize: 11,
-                fontStyle: FontStyle.italic,
               ),
-            ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            );
+          }),
         ],
       ),
     );

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../providers/fooditem_provider.dart';
 import '../utils/progress_analyzer.dart';
-import '../widgets/charts/health_score_gauge.dart';
-import '../widgets/charts/nutrition_chart.dart';
+import '../utils/nutrition_calculator.dart';
+import '../models/food_item.dart';
+import '../models/water_log.dart';
+import '../db/user_database_helper.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:percent_indicator/linear_percent_indicator.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -14,253 +19,373 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  TimePeriod _timePeriod = TimePeriod.weekly;
-  String _selectedMetric = 'calories';
-  final List<String> _metrics = [
+  bool _isWeeklyView = true;
+  String _selectedNutrient = 'calories';
+  DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
+  DateTime _endDate = DateTime.now();
+
+  final List<String> _nutrients = [
     'calories',
     'protein',
     'carbs',
     'fats',
     'sugar',
+    'fiber',
     'sodium',
     'saturatedFat',
+    'water',
   ];
+
+  final Map<String, String> _nutrientLabels = {
+    'calories': 'Calories (kcal)',
+    'protein': 'Protein (g)',
+    'carbs': 'Carbs (g)',
+    'fats': 'Fats (g)',
+    'sugar': 'Sugar (g)',
+    'fiber': 'Fiber (g)',
+    'sodium': 'Sodium (mg)',
+    'saturatedFat': 'Saturated Fat (g)',
+    'water': 'Water (ml)',
+  };
+
+  final Map<String, Color> _nutrientColors = {
+    'calories': Colors.red,
+    'protein': Colors.blue,
+    'carbs': Colors.green,
+    'fats': Colors.orange,
+    'sugar': Colors.purple,
+    'fiber': Colors.brown,
+    'sodium': Colors.teal,
+    'saturatedFat': Colors.pink,
+    'water': Colors.blue.shade400,
+  };
+
+  // Water tracking
+  double waterGoal = 0; // will be calculated based on calorie goal
+  Map<DateTime, double> waterData = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWaterData();
+  }
+
+  Future<void> _loadWaterData() async {
+    final db = UserDatabaseHelper();
+    final waterLogs = await db.getWaterLogsByDateRange(_startDate, _endDate);
+
+    // Group water logs by date and sum the amounts
+    Map<DateTime, double> newWaterData = {};
+    for (var log in waterLogs) {
+      final date = DateTime(log.timestamp.year, log.timestamp.month, log.timestamp.day);
+      if (newWaterData.containsKey(date)) {
+        newWaterData[date] = newWaterData[date]! + log.amount;
+      } else {
+        newWaterData[date] = log.amount;
+      }
+    }
+
+    setState(() {
+      waterData = newWaterData;
+    });
+  }
+
+  void _toggleView() {
+    setState(() {
+      _isWeeklyView = !_isWeeklyView;
+      if (_isWeeklyView) {
+        _startDate = DateTime.now().subtract(const Duration(days: 7));
+      } else {
+        _startDate = DateTime.now().subtract(const Duration(days: 30));
+      }
+      _endDate = DateTime.now();
+    });
+    _loadWaterData();
+  }
+
+  void _selectNutrient(String nutrient) {
+    setState(() {
+      _selectedNutrient = nutrient;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<FoodItemProvider>(context);
-    final data = NutritionDataAggregator.aggregateData(provider, _timePeriod);
-
-    // Get items for the current period (7 days for weekly, 30 for monthly)
-    final periodItems = provider.getFoodItemsForDateRange(
-      _timePeriod == TimePeriod.weekly
-          ? DateTime.now().subtract(const Duration(days: 7))
-          : DateTime.now().subtract(const Duration(days: 30)),
-      DateTime.now(),
-    );
-
-    final insights = HealthRiskAnalyzer.analyzeRisks(periodItems);
-    final healthScore = HealthRiskAnalyzer.calculateHealthScore(periodItems);
-
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text('Nutrition Progress'),
-      //   centerTitle: true,
-      //   actions: [
-      //     IconButton(
-      //       icon: const Icon(Icons.info_outline),
-      //       onPressed: () => _showHealthStandards(context),
-      //     ),
-      //   ],
-      // ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(8),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+      appBar: AppBar(
+        title: Text(_isWeeklyView ? 'Weekly Progress' : 'Monthly Progress'),
+        actions: [
+          TextButton.icon(
+            onPressed: _toggleView,
+            icon: Icon(_isWeeklyView ? Icons.calendar_month : Icons.calendar_view_week),
+            label: Text(_isWeeklyView ? 'Monthly' : 'Weekly'),
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+          ),
+        ],
+      ),
+      body: Consumer<FoodItemProvider>(
+        builder: (context, foodItemProvider, child) {
+          // Get food items for the selected date range
+          List<FoodItem> foodItems = foodItemProvider.getFoodItemsForDateRange(_startDate, _endDate);
+
+          if (foodItems.isEmpty) {
+            return const Center(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Time Period Toggle
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('Weekly'),
-                        selected: _timePeriod == TimePeriod.weekly,
-                        onSelected:
-                            (_) =>
-                                setState(() => _timePeriod = TimePeriod.weekly),
-                        selectedColor: Theme.of(context).primaryColor,
-                        labelStyle: TextStyle(
-                          color:
-                              _timePeriod == TimePeriod.weekly
-                                  ? Colors.white
-                                  : Colors.black,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      ChoiceChip(
-                        label: const Text('Monthly'),
-                        selected: _timePeriod == TimePeriod.monthly,
-                        onSelected:
-                            (_) => setState(
-                              () => _timePeriod = TimePeriod.monthly,
-                            ),
-                        selectedColor: Theme.of(context).primaryColor,
-                        labelStyle: TextStyle(
-                          color:
-                              _timePeriod == TimePeriod.monthly
-                                  ? Colors.white
-                                  : Colors.black,
-                        ),
-                      ),
-                    ],
+                  Icon(Icons.no_food, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No food data available for this period',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Start logging your meals to see your progress',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
 
-                  // const SizedBox(height: 1),
+          // Calculate nutrition data for charts
+          List<Map<String, dynamic>> chartData;
+          if (_selectedNutrient == 'water') {
+            chartData = _getWaterDataForChart();
+          } else {
+            chartData = NutritionCalculator.getNutritionDataForChart(
+              foodItems, 
+              _selectedNutrient
+            );
+          }
 
-                  // Health Score
-                  Center(
+          // Calculate average daily nutrition
+          Map<String, double> avgNutrition = NutritionCalculator.calculateAverageDailyNutrition(foodItems);
+
+          // Calculate water goal based on average calorie intake
+          waterGoal = NutritionCalculator.calculateWaterIntake(avgNutrition['calories'] ?? 0);
+
+          // Calculate macro percentages
+          Map<String, double> macroPercentages = NutritionCalculator.calculateMacroPercentages(
+            avgNutrition['protein'] ?? 0,
+            avgNutrition['carbs'] ?? 0,
+            avgNutrition['fats'] ?? 0,
+          );
+
+          // Get health insights
+          List<HealthInsight> healthInsights = ProgressAnalyzer.analyzeWeeklyData(foodItems);
+
+          // Calculate health score
+          int healthScore = ProgressAnalyzer.calculateHealthScore(foodItems);
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Health Score Card
+                Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        HealthScoreGauge(score: healthScore),
-                        const SizedBox(height: 8),
+                        const Text(
+                          'Health Score',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        CircularPercentIndicator(
+                          radius: 80.0,
+                          lineWidth: 12.0,
+                          percent: healthScore / 100,
+                          center: Text(
+                            '$healthScore',
+                            style: const TextStyle(
+                              fontSize: 36.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          progressColor: _getHealthScoreColor(healthScore),
+                          backgroundColor: Colors.grey.shade200,
+                          circularStrokeCap: CircularStrokeCap.round,
+                          animation: true,
+                          animationDuration: 1200,
+                        ),
+                        const SizedBox(height: 16),
                         Text(
-                          healthScore > 8
-                              ? 'Excellent! 🎉'
-                              : healthScore > 6
-                              ? 'Good Job! 👍'
-                              : 'Needs Improvement 💪',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                          _getHealthScoreMessage(healthScore),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ],
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                  // Metric Selector
-                  Text(
-                    'Select Metric:',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children:
-                          _metrics.map((metric) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(
-                                  metric == 'saturatedFat'
-                                      ? 'Sat. Fat'
-                                      : metric,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color:
-                                        _selectedMetric == metric
-                                            ? Colors.white
-                                            : Theme.of(
-                                              context,
-                                            ).colorScheme.onBackground,
-                                  ),
-                                ),
-                                selected: _selectedMetric == metric,
-                                onSelected:
-                                    (_) => setState(
-                                      () => _selectedMetric = metric,
-                                    ),
-                                selectedColor: Theme.of(context).primaryColor,
-                                backgroundColor: Colors.grey[200],
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
+                // Nutrition Chart
+                Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Nutrition Trends',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
-                            );
-                          }).toList(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Chart Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Nutrition Trends',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Chart
-                  SizedBox(
-                    height: 300,
-                    child: NutritionChart(
-                      data: data,
-                      selectedMetric: _selectedMetric,
-                      period: _timePeriod,
-                      onBarTapped: (date) {
-                        _showDailyDetails(context, provider, date);
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Health Insights
-                  Text(
-                    'Health Insights',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 200),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: ListView(
-                      shrinkWrap: true,
-                      children:
-                          insights
-                              .map(
-                                (insight) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: _getInsightColor(
-                                            insight,
-                                          ).withOpacity(0.1),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          _getInsightIcon(insight),
-                                          size: 20,
-                                          color: _getInsightColor(insight),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          insight,
-                                          style: TextStyle(
-                                            color: Colors.grey[800],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                            ),
+                            DropdownButton<String>(
+                              value: _selectedNutrient,
+                              onChanged: (value) {
+                                if (value != null) {
+                                  _selectNutrient(value);
+                                }
+                              },
+                              items: _nutrients.map((nutrient) {
+                                return DropdownMenuItem<String>(
+                                  value: nutrient,
+                                  child: Text(_nutrientLabels[nutrient] ?? nutrient),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 250,
+                          child: chartData.isEmpty
+                              ? const Center(child: Text('No data available for chart'))
+                              : LineChart(
+                                  _createLineChartData(chartData),
                                 ),
-                              )
-                              .toList(),
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text(
+                            'Daily ${_nutrientLabels[_selectedNutrient]} over time',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                ),
 
-                  // Add bottom padding for iOS safe area
-                  SizedBox(height: MediaQuery.of(context).padding.bottom),
-                ],
-              ),
+                const SizedBox(height: 24),
+
+                // Macronutrient Distribution
+                Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Macronutrient Distribution',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildMacroProgressBar(
+                          'Protein', 
+                          macroPercentages['protein'] ?? 0, 
+                          Colors.blue,
+                          avgNutrition['protein'] ?? 0,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildMacroProgressBar(
+                          'Carbs', 
+                          macroPercentages['carbs'] ?? 0, 
+                          Colors.green,
+                          avgNutrition['carbs'] ?? 0,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildMacroProgressBar(
+                          'Fats', 
+                          macroPercentages['fats'] ?? 0, 
+                          Colors.orange,
+                          avgNutrition['fats'] ?? 0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Daily Average Card
+                Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Daily Average (${_isWeeklyView ? 'Weekly' : 'Monthly'})',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildNutrientRow('Calories', avgNutrition['calories']?.toStringAsFixed(1) ?? '0', 'kcal'),
+                        _buildNutrientRow('Protein', avgNutrition['protein']?.toStringAsFixed(1) ?? '0', 'g'),
+                        _buildNutrientRow('Carbs', avgNutrition['carbs']?.toStringAsFixed(1) ?? '0', 'g'),
+                        _buildNutrientRow('Fats', avgNutrition['fats']?.toStringAsFixed(1) ?? '0', 'g'),
+                        _buildNutrientRow('Sugar', avgNutrition['sugar']?.toStringAsFixed(1) ?? '0', 'g'),
+                        _buildNutrientRow('Fiber', avgNutrition['fiber']?.toStringAsFixed(1) ?? '0', 'g'),
+                        _buildNutrientRow('Sodium', avgNutrition['sodium']?.toStringAsFixed(1) ?? '0', 'mg'),
+                        _buildNutrientRow('Saturated Fat', avgNutrition['saturatedFat']?.toStringAsFixed(1) ?? '0', 'g'),
+                        _buildNutrientRow('Water', _calculateAverageWaterIntake().toStringAsFixed(1), 'ml'),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Health Insights
+                Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Health Insights & Recommendations',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ...healthInsights.map((insight) => _buildInsightCard(insight)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -268,183 +393,274 @@ class _ProgressScreenState extends State<ProgressScreen> {
     );
   }
 
-  Color _getInsightColor(String insight) {
-    if (insight.contains('⚠️') || insight.contains('may increase'))
-      return Colors.orange;
-    if (insight.contains('🧂') || insight.contains('High sodium'))
-      return Colors.red;
-    if (insight.contains('🍔') || insight.contains('saturated fat'))
-      return Colors.deepOrange;
-    return Colors.green;
-  }
-
-  IconData _getInsightIcon(String insight) {
-    if (insight.contains('⚠️') || insight.contains('may increase'))
-      return Icons.warning;
-    if (insight.contains('🧂') || insight.contains('High sodium'))
-      return Icons.bloodtype;
-    if (insight.contains('🍔') || insight.contains('saturated fat'))
-      return Icons.fastfood;
-    return Icons.check_circle;
-  }
-
-  void _showDailyDetails(
-    BuildContext context,
-    FoodItemProvider provider,
-    DateTime date,
-  ) {
-    final items = provider.getFoodItemsForDate(date);
-    final dateFormatted = DateFormat.yMMMMd().format(date);
-
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(dateFormatted),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (items.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Text('No food logged this day'),
-                  )
-                else
-                  ...items
-                      .map(
-                        (item) => ListTile(
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              _getMealIcon(item.mealType),
-                              color: Colors.blue,
-                            ),
-                          ),
-                          title: Text(
-                            item.foodItem,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          subtitle: Text(
-                            '${item.calories.toStringAsFixed(0)} kcal',
-                          ),
-                          trailing: Text(
-                            item.mealType,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                const SizedBox(height: 16),
-                if (items.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green[50],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Daily Total:',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          '${provider.getTotalCalories(date).toStringAsFixed(0)} kcal',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-            ],
-          ),
+  Widget _buildMacroProgressBar(String label, double percentage, Color color, double grams) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+            Text('${percentage.toStringAsFixed(1)}% (${grams.toStringAsFixed(1)}g)'),
+          ],
+        ),
+        const SizedBox(height: 4),
+        LinearPercentIndicator(
+          lineHeight: 16.0,
+          percent: percentage / 100,
+          backgroundColor: Colors.grey.shade200,
+          progressColor: color,
+          animation: true,
+          animationDuration: 1000,
+          barRadius: const Radius.circular(8),
+        ),
+      ],
     );
   }
 
-  IconData _getMealIcon(String mealType) {
-    switch (mealType.toLowerCase()) {
-      case 'breakfast':
-        return Icons.breakfast_dining;
-      case 'lunch':
-        return Icons.lunch_dining;
-      case 'dinner':
-        return Icons.dinner_dining;
-      case 'snack':
-        return Icons.cookie;
-      default:
-        return Icons.restaurant;
-    }
-  }
-
-  void _showHealthStandards(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Health Standards'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildStandardRow('Sugar', '≤36g/day', Colors.pink),
-                _buildStandardRow('Sodium', '≤2300mg/day', Colors.blueGrey),
-                _buildStandardRow(
-                  'Saturated Fat',
-                  '≤22g/day',
-                  Colors.deepOrange,
-                ),
-                _buildStandardRow('Protein', '50-175g/day', Colors.blue),
-                const SizedBox(height: 16),
-                Text(
-                  'Based on WHO recommendations for average adults',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Widget _buildStandardRow(String title, String value, Color color) {
+  Widget _buildNutrientRow(String label, String value, String unit) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 16,
-            height: 16,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 12),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(label),
+          Text('$value $unit', style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
+  }
+
+  Widget _buildInsightCard(HealthInsight insight) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: insight.severityColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: insight.severityColor.withOpacity(0.3)),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(insight.severityIcon, color: insight.severityColor),
+                const SizedBox(width: 8),
+                Text(
+                  insight.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: insight.severityColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(insight.description),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.lightbulb_outline, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    insight.recommendation,
+                    style: const TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  LineChartData _createLineChartData(List<Map<String, dynamic>> data) {
+    List<FlSpot> spots = [];
+
+    // Create spots for the line chart
+    for (int i = 0; i < data.length; i++) {
+      spots.add(FlSpot(i.toDouble(), data[i]['value'].toDouble()));
+    }
+
+    return LineChartData(
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: true,
+        horizontalInterval: _getYAxisInterval(data),
+        verticalInterval: 1,
+      ),
+      titlesData: FlTitlesData(
+        show: true,
+        rightTitles: AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+        topTitles: AxisTitles(
+          sideTitles: SideTitles(showTitles: false),
+        ),
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 30,
+            interval: 1,
+            getTitlesWidget: (value, meta) {
+              if (value.toInt() >= 0 && value.toInt() < data.length) {
+                final date = data[value.toInt()]['date'] as DateTime;
+                return SideTitleWidget(
+                  axisSide: meta.axisSide,
+                  child: Text(
+                    DateFormat('MM/dd').format(date),
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                );
+              }
+              return const SizedBox();
+            },
+          ),
+        ),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: _getYAxisInterval(data),
+            reservedSize: 42,
+            getTitlesWidget: (value, meta) {
+              return SideTitleWidget(
+                axisSide: meta.axisSide,
+                child: Text(
+                  value.toStringAsFixed(0),
+                  style: const TextStyle(fontSize: 10),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+      borderData: FlBorderData(
+        show: true,
+        border: Border.all(color: const Color(0xff37434d)),
+      ),
+      minX: 0,
+      maxX: data.length - 1.0,
+      minY: 0,
+      maxY: _getMaxY(data),
+      lineBarsData: [
+        LineChartBarData(
+          spots: spots,
+          isCurved: true,
+          color: _nutrientColors[_selectedNutrient] ?? Colors.blue,
+          barWidth: 3,
+          isStrokeCapRound: true,
+          dotData: FlDotData(
+            show: true,
+            getDotPainter: (spot, percent, barData, index) {
+              return FlDotCirclePainter(
+                radius: 4,
+                color: _nutrientColors[_selectedNutrient] ?? Colors.blue,
+                strokeWidth: 1,
+                strokeColor: Colors.white,
+              );
+            },
+          ),
+          belowBarData: BarAreaData(
+            show: true,
+            color: (_nutrientColors[_selectedNutrient] ?? Colors.blue).withOpacity(0.2),
+          ),
+        ),
+      ],
+      lineTouchData: LineTouchData(
+        touchTooltipData: LineTouchTooltipData(
+          // backgroundColor: (_nutrientColors[_selectedNutrient] ?? Colors.blue).withOpacity(0.8),
+          getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+            return touchedBarSpots.map((barSpot) {
+              final index = barSpot.x.toInt();
+              if (index >= 0 && index < data.length) {
+                final value = data[index]['value'];
+                final date = data[index]['date'] as DateTime;
+                return LineTooltipItem(
+                  '${DateFormat('MM/dd').format(date)}: ${value.toStringAsFixed(1)}',
+                  const TextStyle(color: Colors.white),
+                );
+              }
+              return null;
+            }).toList();
+          },
+        ),
+      ),
+    );
+  }
+
+  double _getMaxY(List<Map<String, dynamic>> data) {
+    if (data.isEmpty) return 100;
+    double maxValue = 0;
+    for (var point in data) {
+      if (point['value'] > maxValue) {
+        maxValue = point['value'];
+      }
+    }
+    return maxValue * 1.2; // Add 20% padding
+  }
+
+  double _getYAxisInterval(List<Map<String, dynamic>> data) {
+    double maxY = _getMaxY(data);
+    if (maxY <= 50) return 10;
+    if (maxY <= 100) return 20;
+    if (maxY <= 500) return 100;
+    if (maxY <= 1000) return 200;
+    return 500;
+  }
+
+  Color _getHealthScoreColor(int score) {
+    if (score >= 80) return Colors.green;
+    if (score >= 60) return Colors.lightGreen;
+    if (score >= 40) return Colors.orange;
+    return Colors.red;
+  }
+
+  String _getHealthScoreMessage(int score) {
+    if (score >= 80) {
+      return 'Excellent! Your diet is well-balanced and nutritious.';
+    } else if (score >= 60) {
+      return 'Good job! Your diet is generally healthy with some room for improvement.';
+    } else if (score >= 40) {
+      return 'Your diet needs attention. Check the insights below for recommendations.';
+    } else {
+      return 'Your diet requires significant improvement. Review the insights and recommendations below.';
+    }
+  }
+
+  List<Map<String, dynamic>> _getWaterDataForChart() {
+    List<Map<String, dynamic>> result = [];
+
+    // Generate a list of dates in the range
+    final int daysDifference = _endDate.difference(_startDate).inDays + 1;
+    for (int i = 0; i < daysDifference; i++) {
+      final date = _startDate.add(Duration(days: i));
+      final dateKey = DateTime(date.year, date.month, date.day);
+
+      // Get water intake for this date, or 0 if not available
+      final waterAmount = waterData[dateKey] ?? 0.0;
+
+      result.add({
+        'date': dateKey,
+        'value': waterAmount,
+      });
+    }
+
+    return result;
+  }
+
+  double _calculateAverageWaterIntake() {
+    if (waterData.isEmpty) return 0;
+
+    double totalWater = 0;
+    for (var amount in waterData.values) {
+      totalWater += amount;
+    }
+
+    return totalWater / waterData.length;
   }
 }

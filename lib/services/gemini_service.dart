@@ -6,7 +6,7 @@ import '../models/user_profile.dart';
 import '../models/meal_plan.dart';
 
 class GeminiService {
-  static const String _apiKey = 'AIzaSyAwJlcudkNBx36XBT455Sh02VSXr1GsbPg';
+  static const String _apiKey = 'AIzaSyArLiiGhpuhvSInUEwjvpl5ek8VG9jcFi8';
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models';
   static String get _endpoint =>
@@ -300,9 +300,10 @@ Use this JSON format:
   static Future<String> generateMealPlan(
     UserProfile profile, {
     bool isWeekly = false,
+    DateTime? date,
   }) async {
     try {
-      String prompt = _buildMealPlanPrompt(profile, isWeekly);
+      String prompt = _buildMealPlanPrompt(profile, isWeekly, date);
       final response = await http.post(
         Uri.parse(_endpoint),
         headers: {'Content-Type': 'application/json'},
@@ -315,7 +316,7 @@ Use this JSON format:
             },
           ],
           'generationConfig': {
-            'temperature': 0.7,
+            'temperature': 0.9, // Increased for more variation
             'topK': 32,
             'topP': 1,
             'maxOutputTokens': 4096,
@@ -345,10 +346,20 @@ Use this JSON format:
   }
 
   /// Builds a prompt for meal plan generation
-  static String _buildMealPlanPrompt(UserProfile profile, bool isWeekly) {
+  static String _buildMealPlanPrompt(
+    UserProfile profile,
+    bool isWeekly,
+    DateTime? date,
+  ) {
     final StringBuilder = StringBuffer();
+
+    // Include the date in the prompt to ensure different meal plans for different dates
+    final targetDate = date ?? DateTime.now();
+    final dateStr =
+        '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}';
+
     StringBuilder.write(
-      'Generate a ${isWeekly ? "weekly" : "daily"} personalized meal plan for a ',
+      'Generate a ${isWeekly ? "weekly" : "daily"} personalized meal plan for $dateStr for a ',
     );
 
     // User characteristics
@@ -388,7 +399,7 @@ Use this JSON format:
       StringBuilder.write('Activity level: ${profile.activityLevel}. ');
     }
 
-    // Tanzanian food focus
+    // Tanzanian food focus with consistency and variety
     StringBuilder.write(
       'Focus exclusively on Tanzanian and East African foods. Use ingredients like: '
       'ugali (maize flour), wali (rice), mtori (plantain stew), ndizi (plantains), '
@@ -399,6 +410,10 @@ Use this JSON format:
       'ugali na mchuzi, wali wa nazi, pilau, chapati, mtori, ndizi kaanga, kachumbari, '
       'mchuzi wa samaki, nyama choma, and uji (porridge). '
       'Structure meals with lunch as the main meal. '
+      'IMPORTANT: Create a unique and different meal plan for this specific date. '
+      'While maintaining some consistency in food types (like including ugali, rice, beans), '
+      'ensure significant variation in the specific dishes, preparation methods, and combinations. '
+      'Each date should have a distinctly different meal plan with unique food combinations. '
       'Ensure all suggestions are culturally appropriate and locally available in Tanzania.',
     );
 
@@ -434,7 +449,11 @@ ${isWeekly ? ']' : ''}
   }
 
   /// Parse the JSON response from Gemini
-  static dynamic parseMealPlanResponse(String response, bool isWeekly) {
+  static dynamic parseMealPlanResponse(
+    String response,
+    bool isWeekly, [
+    UserProfile? profile,
+  ]) {
     try {
       String cleanedResponse = response;
       if (response.contains('```json')) {
@@ -472,9 +491,16 @@ ${isWeekly ? ']' : ''}
               'dailyPlans': [jsonData],
             };
           } else {
-            return _createDefaultWeeklyPlan();
+            return _createDefaultWeeklyPlan(profile);
           }
         }
+
+        // Add generatedFor field if profile is provided
+        if (profile != null) {
+          String profileSummary = _generateProfileSummary(profile);
+          jsonData['generatedFor'] = profileSummary;
+        }
+
         return WeeklyMealPlan.fromJson(jsonData);
       } else {
         if (!jsonData.containsKey('meals') && !jsonData.containsKey('date')) {
@@ -491,16 +517,32 @@ ${isWeekly ? ']' : ''}
           }
           jsonData = {'date': DateTime.now().toIso8601String(), 'meals': meals};
         }
+
+        // Add generatedFor field if profile is provided
+        if (profile != null) {
+          String profileSummary = _generateProfileSummary(profile);
+          jsonData['generatedFor'] = profileSummary;
+        }
+
         return DailyMealPlan.fromJson(jsonData);
       }
     } catch (e) {
       print('Failed to parse meal plan response: ${e.toString()}');
-      return isWeekly ? _createDefaultWeeklyPlan() : _createDefaultDailyPlan();
+      return isWeekly
+          ? _createDefaultWeeklyPlan(profile)
+          : _createDefaultDailyPlan(profile);
     }
   }
 
   /// Create a default daily meal plan
-  static DailyMealPlan _createDefaultDailyPlan() {
+  static DailyMealPlan _createDefaultDailyPlan([UserProfile? profile]) {
+    String? generatedFor;
+    if (profile != null) {
+      generatedFor = _generateProfileSummary(profile);
+    } else {
+      generatedFor = 'Default meal plan';
+    }
+
     return DailyMealPlan(
       date: DateTime.now(),
       meals: [
@@ -529,13 +571,22 @@ ${isWeekly ? ']' : ''}
           healthBenefits: '',
         ),
       ],
+      generatedFor: generatedFor,
     );
   }
 
   /// Create a default weekly meal plan
-  static WeeklyMealPlan _createDefaultWeeklyPlan() {
+  static WeeklyMealPlan _createDefaultWeeklyPlan([UserProfile? profile]) {
     final today = DateTime.now();
     final weekStart = today.subtract(Duration(days: today.weekday - 1));
+
+    String? generatedFor;
+    if (profile != null) {
+      generatedFor = _generateProfileSummary(profile);
+    } else {
+      generatedFor = 'Error generating meal plan';
+    }
+
     return WeeklyMealPlan(
       dailyPlans: List.generate(
         7,
@@ -551,10 +602,42 @@ ${isWeekly ? ']' : ''}
             Meal(mealType: 'Dinner', foodItems: []),
             Meal(mealType: 'Snack', foodItems: []),
           ],
+          generatedFor: generatedFor,
         ),
       ),
-      generatedFor: 'Error generating meal plan',
+      generatedFor: generatedFor,
     );
+  }
+
+  /// Generate a summary of the user profile for the generatedFor field
+  static String _generateProfileSummary(UserProfile profile) {
+    final StringBuilder = StringBuffer();
+
+    // Add basic profile information
+    if (profile.gender != null) StringBuilder.write('${profile.gender}, ');
+    if (profile.age != null) StringBuilder.write('${profile.age} years, ');
+
+    // Add health conditions if available
+    if (profile.healthConditions != null &&
+        profile.healthConditions!.isNotEmpty) {
+      StringBuilder.write('Health: ${profile.healthConditions!.join(", ")}, ');
+    }
+
+    // Add dietary restrictions if available
+    if (profile.dietaryRestrictions != null &&
+        profile.dietaryRestrictions!.isNotEmpty) {
+      StringBuilder.write('Diet: ${profile.dietaryRestrictions!.join(", ")}, ');
+    }
+
+    // Add dietary goals if available
+    if (profile.dietaryGoals != null && profile.dietaryGoals!.isNotEmpty) {
+      StringBuilder.write('Goals: ${profile.dietaryGoals!.join(", ")}, ');
+    }
+
+    // Add timestamp to ensure uniqueness when profile is updated
+    StringBuilder.write('Generated: ${DateTime.now().toIso8601String()}');
+
+    return StringBuilder.toString();
   }
 
   /// Handles nutrition-related chat queries with conversation history
@@ -623,6 +706,12 @@ Respond directly without instructions.
         );
       }
     } catch (e) {
+      // Check if the error is related to quota exceeded and rethrow it
+      if (e.toString().toLowerCase().contains('quota exceeded') ||
+          e.toString().contains('429') ||
+          e.toString().toLowerCase().contains('too many requests')) {
+        rethrow; // Rethrow quota exceeded errors to be handled by the caller
+      }
       return 'Sorry, I couldn\'t process your question. / Samahani, sikuweza kuchakata swali lako.';
     }
   }
@@ -669,7 +758,7 @@ FORMAT RESPONSE AS JSON:
       "saturatedFat": number,
       "fiber": number,
       "sodium": number
-      
+
       // ... other nutrients ...
     }
   ]

@@ -82,7 +82,16 @@ class DailyMealPlan {
   final DateTime date;
   final List<Meal> meals;
 
-  DailyMealPlan({required this.date, required this.meals});
+  // User profile information this was generated for
+  // This field is used to track which user profile version this meal plan was generated for
+  // When the user profile changes, this can be compared to determine if the meal plan needs to be regenerated
+  final String? generatedFor;
+
+  DailyMealPlan({
+    required this.date, 
+    required this.meals, 
+    this.generatedFor,
+  });
 
   // Calculate total nutritional values for the day
   double get totalCalories =>
@@ -105,7 +114,11 @@ class DailyMealPlan {
 
       // Check if meals exists and is a list
       if (json['meals'] == null || json['meals'] is! List) {
-        return DailyMealPlan(date: date, meals: []);
+        return DailyMealPlan(
+          date: date, 
+          meals: [],
+          generatedFor: json['generatedFor'],
+        );
       }
 
       // Safely convert and map the meals
@@ -121,11 +134,19 @@ class DailyMealPlan {
         }
       }
 
-      return DailyMealPlan(date: date, meals: meals);
+      return DailyMealPlan(
+        date: date, 
+        meals: meals,
+        generatedFor: json['generatedFor'],
+      );
     } catch (e) {
       print('Error parsing DailyMealPlan from JSON: $e');
       // Return a default plan if parsing fails
-      return DailyMealPlan(date: DateTime.now(), meals: []);
+      return DailyMealPlan(
+        date: DateTime.now(), 
+        meals: [],
+        generatedFor: 'Error parsing meal plan',
+      );
     }
   }
 
@@ -133,13 +154,18 @@ class DailyMealPlan {
     return {
       'date': date.toIso8601String(),
       'meals': meals.map((meal) => meal.toJson()).toList(),
+      'generatedFor': generatedFor,
     };
   }
 }
 
 class WeeklyMealPlan {
   final List<DailyMealPlan> dailyPlans;
-  final String? generatedFor; // User profile information this was generated for
+
+  // User profile information this was generated for
+  // This field is used to track which user profile version this meal plan was generated for
+  // When the user profile changes, this can be compared to determine if the meal plan needs to be regenerated
+  final String? generatedFor;
 
   WeeklyMealPlan({required this.dailyPlans, this.generatedFor});
 
