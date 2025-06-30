@@ -6,7 +6,7 @@ import '../models/user_profile.dart';
 import '../models/meal_plan.dart';
 
 class GeminiService {
-  static const String _apiKey = 'AIzaSyArLiiGhpuhvSInUEwjvpl5ek8VG9jcFi8';
+  static const String _apiKey = '';
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models';
   static String get _endpoint =>
