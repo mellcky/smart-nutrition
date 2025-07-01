@@ -12,6 +12,8 @@ class UserProfile {
   List<String>? dietaryGoals;
   String? name;
   double? totalCaloriesGoal;
+  String? email; // Added for authentication
+  String? password; // Added for authentication
 
   UserProfile({
     this.id,
@@ -25,6 +27,8 @@ class UserProfile {
     this.dietaryGoals,
     this.name,
     this.totalCaloriesGoal,
+    this.email,
+    this.password,
   });
 
   // Convert object to map for insertion into database
@@ -41,6 +45,8 @@ class UserProfile {
       'dietaryGoals': jsonEncode(dietaryGoals ?? []),
       'name': name,
       'totalCaloriesGoal': totalCaloriesGoal,
+      'email': email,
+      'password': password,
     };
   }
 
@@ -60,6 +66,8 @@ class UserProfile {
       dietaryGoals: List<String>.from(jsonDecode(map['dietaryGoals'])),
       name: map['name'],
       totalCaloriesGoal: map['totalCaloriesGoal']?.toDouble(),
+      email: map['email'],
+      password: map['password'],
     );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:diet_app/screens/dietarygoals_screen.dart';
+import 'package:diet_app/screens/name_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '/providers/userprofile_provider.dart';
@@ -184,33 +184,7 @@ class _HealthConditionsScreenState extends State<HealthConditionsScreen> with Si
                     ),
                   ),
 
-                  // Clear instruction for users
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade100,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.amber.shade400),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.amber.shade800),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            "Select from the list below or add your own health conditions using the text input at the bottom.",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.amber.shade900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
 
                   // Checkbox list + text input
                   Expanded(
@@ -474,7 +448,7 @@ class _HealthConditionsScreenState extends State<HealthConditionsScreen> with Si
                           context,
                           PageRouteBuilder(
                             pageBuilder: (context, animation, secondaryAnimation) => 
-                              const DietaryGoalsScreen(),
+                              const NameScreen(),
                             transitionsBuilder: (context, animation, secondaryAnimation, child) {
                               const begin = Offset(1.0, 0.0);
                               const end = Offset.zero;

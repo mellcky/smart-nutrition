@@ -144,25 +144,45 @@ class NutritionCalculator {
     List<FoodItem> foodItems, 
     String nutrientType
   ) {
-    // Group food items by day
-    Map<String, List<FoodItem>> foodItemsByDay = {};
+    // Find the date range from the food items
+    DateTime? startDate;
+    DateTime? endDate;
 
+    if (foodItems.isNotEmpty) {
+      startDate = foodItems.map((item) => item.timestamp).reduce((a, b) => a.isBefore(b) ? a : b);
+      endDate = foodItems.map((item) => item.timestamp).reduce((a, b) => a.isAfter(b) ? a : b);
+
+      // Normalize to start of day
+      startDate = DateTime(startDate.year, startDate.month, startDate.day);
+      endDate = DateTime(endDate.year, endDate.month, endDate.day);
+    } else {
+      // If no food items, use current date
+      final now = DateTime.now();
+      startDate = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 7));
+      endDate = DateTime(now.year, now.month, now.day);
+    }
+
+    // Group food items by day
+    Map<DateTime, List<FoodItem>> foodItemsByDay = {};
+
+    // Initialize all days in the range with empty lists
+    DateTime currentDate = startDate;
+    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+      foodItemsByDay[DateTime(currentDate.year, currentDate.month, currentDate.day)] = [];
+      currentDate = currentDate.add(const Duration(days: 1));
+    }
+
+    // Add food items to their respective days
     for (var item in foodItems) {
-      String dateKey = DateFormat('yyyy-MM-dd').format(item.timestamp);
-      if (!foodItemsByDay.containsKey(dateKey)) {
-        foodItemsByDay[dateKey] = [];
-      }
+      DateTime dateKey = DateTime(item.timestamp.year, item.timestamp.month, item.timestamp.day);
       foodItemsByDay[dateKey]!.add(item);
     }
 
     // Calculate daily nutrition for each day
     List<Map<String, dynamic>> chartData = [];
 
-    foodItemsByDay.forEach((dateKey, items) {
+    foodItemsByDay.forEach((date, items) {
       Map<String, double> dailyNutrition = calculateDailyNutrition(items);
-
-      // Parse the date
-      DateTime date = DateFormat('yyyy-MM-dd').parse(dateKey);
 
       // Add data point
       chartData.add({

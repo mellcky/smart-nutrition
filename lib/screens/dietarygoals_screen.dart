@@ -1,4 +1,4 @@
-import 'package:diet_app/screens/name_screen.dart';
+import 'package:diet_app/screens/healthconditions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -219,7 +219,7 @@ class _DietaryGoalsScreenState extends State<DietaryGoalsScreen> with SingleTick
                           context,
                           PageRouteBuilder(
                             pageBuilder: (context, animation, secondaryAnimation) => 
-                              const NameScreen(),
+                              const HealthConditionsScreen(),
                             transitionsBuilder: (context, animation, secondaryAnimation, child) {
                               const begin = Offset(1.0, 0.0);
                               const end = Offset.zero;

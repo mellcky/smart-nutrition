@@ -733,11 +733,11 @@ If the image DOES contain food, identify only the food items visible. List each 
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               !_isTextInputMode
-                                  ? Theme.of(context).colorScheme.primary
+                                  ? Colors.green.shade600
                                   : Colors.grey[300],
                           foregroundColor:
                               !_isTextInputMode
-                                  ? Theme.of(context).colorScheme.onPrimary
+                                  ? Colors.white
                                   : Colors.black87,
                         ),
                       ),
@@ -762,11 +762,11 @@ If the image DOES contain food, identify only the food items visible. List each 
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               _isTextInputMode
-                                  ? Theme.of(context).colorScheme.primary
+                                  ? Colors.green.shade600
                                   : Colors.grey[300],
                           foregroundColor:
                               _isTextInputMode
-                                  ? Theme.of(context).colorScheme.onPrimary
+                                  ? Colors.white
                                   : Colors.black87,
                         ),
                       ),
@@ -794,7 +794,7 @@ If the image DOES contain food, identify only the food items visible. List each 
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Colors.green.shade700,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -834,7 +834,7 @@ If the image DOES contain food, identify only the food items visible. List each 
                                     // Enhanced mic button with sound visualization and glow effect
                                     AvatarGlow(
                                       animate: _isListening,
-                                      glowColor: _isListening ? Colors.red : Colors.blue,
+                                      glowColor: _isListening ? Colors.green.shade400 : Colors.green.shade200,
                                       // endRadius: 30.0,
                                       duration: const Duration(milliseconds: 2000),
                                       // endRadiusFactor: 2.0,
@@ -854,8 +854,8 @@ If the image DOES contain food, identify only the food items visible. List each 
                                           ],
                                           color:
                                               _isListening
-                                                  ? Colors.red
-                                                  : Colors.blue,
+                                                  ? Colors.green.shade600
+                                                  : Colors.green.shade400,
                                           borderRadius: const BorderRadius.all(
                                             Radius.circular(50),
                                           ),
@@ -906,8 +906,7 @@ If the image DOES contain food, identify only the food items visible. List each 
                                   child: Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(2),
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                      color: Colors.green.shade600,
                                     ),
                                   ),
                                 ),
@@ -935,7 +934,7 @@ If the image DOES contain food, identify only the food items visible. List each 
                                     Text(
                                       _detectedLanguage,
                                       style: TextStyle(
-                                        color: Colors.blue[700],
+                                        color: Colors.green.shade700,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
                                       ),
@@ -983,7 +982,7 @@ If the image DOES contain food, identify only the food items visible. List each 
                                   Text(
                                     'Detected: $_detectedLanguage',
                                     style: TextStyle(
-                                      color: Colors.blue[700],
+                                      color: Colors.green.shade700,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -1024,10 +1023,8 @@ If the image DOES contain food, identify only the food items visible. List each 
                         label: const Text('Log Food'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onPrimary,
+                          backgroundColor: Colors.green.shade600,
+                          foregroundColor: Colors.white,
                         ),
                       ),
                     ],
@@ -1111,9 +1108,8 @@ If the image DOES contain food, identify only the food items visible. List each 
                           horizontal: 16,
                           vertical: 12,
                         ),
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary,
+                        backgroundColor: Colors.green.shade600,
+                        foregroundColor: Colors.white,
                         disabledBackgroundColor: Colors.grey,
                       ),
                     ),
@@ -1126,10 +1122,8 @@ If the image DOES contain food, identify only the food items visible. List each 
                           horizontal: 16,
                           vertical: 12,
                         ),
-                        backgroundColor:
-                            Theme.of(context).colorScheme.secondary,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onSecondary,
+                        backgroundColor: Colors.green.shade500,
+                        foregroundColor: Colors.white,
                         disabledBackgroundColor: Colors.grey,
                       ),
                     ),
@@ -1408,7 +1402,7 @@ If the image DOES contain food, identify only the food items visible. List each 
               children: [
                 Icon(
                   Icons.check_circle,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: Colors.green.shade600,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -1418,7 +1412,7 @@ If the image DOES contain food, identify only the food items visible. List each 
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Colors.green.shade700,
                   ),
                 ),
               ],
@@ -1445,12 +1439,10 @@ If the image DOES contain food, identify only the food items visible. List each 
                   ),
                   child: ExpansionTile(
                     leading: CircleAvatar(
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.primary.withOpacity(0.2),
+                      backgroundColor: Colors.green.shade100,
                       child: Icon(
                         Icons.restaurant,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: Colors.green.shade700,
                       ),
                     ),
                     title: Text(
@@ -1603,10 +1595,8 @@ If the image DOES contain food, identify only the food items visible. List each 
                                   _logFoodItem(foodItem, nutritionInfo);
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.onPrimary,
+                                  backgroundColor: Colors.green.shade600,
+                                  foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 24,
                                     vertical: 12,

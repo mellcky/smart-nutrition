@@ -30,7 +30,7 @@ class UserDatabaseHelper {
 
     return await openDatabase(
       path, 
-      version: 2, 
+      version: 3, // Increased version number to trigger onUpgrade
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -49,6 +49,17 @@ class UserDatabaseHelper {
       ''');
       print('Created water_logs table during upgrade from version $oldVersion to $newVersion');
     }
+
+    if (oldVersion < 3) {
+      // Add email and password columns to user_profile table if upgrading from version 2 or lower
+      try {
+        await db.execute('ALTER TABLE $tableUser ADD COLUMN email TEXT');
+        await db.execute('ALTER TABLE $tableUser ADD COLUMN password TEXT');
+        print('Added email and password columns to user_profile table during upgrade from version $oldVersion to $newVersion');
+      } catch (e) {
+        print('Error adding columns to user_profile table: $e');
+      }
+    }
   }
 
   // SQL to create the user_profile table
@@ -66,6 +77,8 @@ class UserDatabaseHelper {
         dietaryGoals TEXT,
         name TEXT,
         totalCaloriesGoal REAL,
+        email TEXT UNIQUE,
+        password TEXT,
         timestamp INTEGER DEFAULT (strftime('%s', 'now'))
         )
     ''');
@@ -143,6 +156,107 @@ class UserDatabaseHelper {
   Future<void> clearUsers() async {
     final db = await database;
     await db.delete(tableUser);
+  }
+
+  // Authentication methods
+
+  // Check if a user exists with the given email
+  Future<bool> userExists(String email) async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.query(
+      tableUser,
+      where: 'email = ?',
+      whereArgs: [email],
+      limit: 1,
+    );
+    return result.isNotEmpty;
+  }
+
+  // Register a new user
+  Future<int> registerUser(UserProfile user) async {
+    try {
+      // Check if user already exists
+      bool exists = await userExists(user.email ?? '');
+      if (exists) {
+        return -1; // User already exists
+      }
+
+      final db = await database;
+      return await db.insert(tableUser, user.toMap());
+    } catch (e) {
+      print('Error registering user: $e');
+      return -2; // Database error
+    }
+  }
+
+  // Login a user
+  Future<UserProfile?> loginUser(String email, String password) async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> result = await db.query(
+        tableUser,
+        where: 'email = ? AND password = ?',
+        whereArgs: [email, password],
+        limit: 1,
+      );
+
+      if (result.isEmpty) {
+        return null; // No user found with these credentials
+      }
+
+      return UserProfile.fromMap(result.first);
+    } catch (e) {
+      print('Error logging in user: $e');
+      return null;
+    }
+  }
+
+  // Get user by email
+  Future<UserProfile?> getUserByEmail(String email) async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> result = await db.query(
+        tableUser,
+        where: 'email = ?',
+        whereArgs: [email],
+        limit: 1,
+      );
+
+      if (result.isEmpty) {
+        return null;
+      }
+
+      return UserProfile.fromMap(result.first);
+    } catch (e) {
+      print('Error getting user by email: $e');
+      return null;
+    }
+  }
+
+  // Reset password for a user
+  Future<bool> resetPassword(String email, String newPassword) async {
+    try {
+      final db = await database;
+
+      // Check if user exists
+      bool exists = await userExists(email);
+      if (!exists) {
+        return false; // User doesn't exist
+      }
+
+      // Update the password
+      int result = await db.update(
+        tableUser,
+        {'password': newPassword},
+        where: 'email = ?',
+        whereArgs: [email],
+      );
+
+      return result > 0; // Return true if at least one row was updated
+    } catch (e) {
+      print('Error resetting password: $e');
+      return false;
+    }
   }
 
   Future<int> insertFoodItem(FoodItem foodItem) async {

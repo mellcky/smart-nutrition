@@ -88,6 +88,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
     }
   }
 
+
   void _startDisplaySequence() async {
     for (int i = 0; i < summaryData.length; i++) {
       setState(() {
@@ -202,15 +203,15 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                                         Colors.grey[200],
                                                   ),
                                                 ],
-                                      )
+                                       )
                                       : Text(
-                                        item['value'],
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
+                                         item['value'],
+                                         textAlign: TextAlign.center,
+                                         style: const TextStyle(
+                                           fontSize: 14,
+                                           fontWeight: FontWeight.w500,
+                                         ),
+                                       ),
                                 ],
                               ),
                             ),

@@ -276,9 +276,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
     double remaining = goal - consumed;
 
     // Calculate macro percentages
-    final double proteinPercentage = protein / (protein + carbs + fats);
-    final double carbsPercentage = carbs / (protein + carbs + fats);
-    final double fatsPercentage = fats / (protein + carbs + fats);
+    final double totalMacros = protein + carbs + fats;
+    final double proteinPercentage = totalMacros > 0 ? protein / totalMacros : 0.0;
+    final double carbsPercentage = totalMacros > 0 ? carbs / totalMacros : 0.0;
+    final double fatsPercentage = totalMacros > 0 ? fats / totalMacros : 0.0;
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

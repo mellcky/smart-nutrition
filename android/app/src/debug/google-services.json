@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "838182783439",
+    "project_id": "smart-nutrition-ad346",
+    "storage_bucket": "smart-nutrition-ad346.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:838182783439:android:df832e0f82c07179872aba",
+        "android_client_info": {
+          "package_name": "com.example.diet_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "838182783439-6pd05ed9q6mnb7gsv03972nr80obmgbm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.diet_app",
+            "certificate_hash": "2e8ddd593f10d464c199a3dcbac08741bcd26853"
+          }
+        },
+        {
+          "client_id": "838182783439-5lsiu6jckfsegt2r1f2tahgfhp100qgi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD22P-WTeSZTEO4gr2sJSmVtkpo51PQjHc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "838182783439-5lsiu6jckfsegt2r1f2tahgfhp100qgi.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

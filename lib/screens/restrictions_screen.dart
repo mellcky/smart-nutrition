@@ -189,37 +189,46 @@ class _RestrictionsScreenState extends State<RestrictionsScreen> with SingleTick
                   ),
 
                   // Title
-                  Text(
-                    "Dietary Restrictions",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      "Dietary Restrictions",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 10),
 
                   // Question
-                  Text(
-                    "Do you have any dietary restrictions?",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green.shade700,
-                      letterSpacing: 0.5,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: Text(
+                      "Do you have any food restrictions?",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green.shade700,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 5),
 
                   // Subtitle
-                  Text(
-                    "Select all that apply",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.grey.shade600,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      "Select all that apply",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ),
 

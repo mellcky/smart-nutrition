@@ -1,4 +1,5 @@
 import '/screens/gender_screen.dart';
+import '/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -128,7 +129,13 @@ class WelcomeScreen extends StatelessWidget {
                         Text("Already have an account? "),
                         GestureDetector(
                           onTap: () {
-                            // Handle sign in
+                            // Navigate to login screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginScreen(),
+                              ),
+                            );
                           },
                           child: Text(
                             "Sign in",

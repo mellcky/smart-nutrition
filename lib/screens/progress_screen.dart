@@ -394,6 +394,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   Widget _buildMacroProgressBar(String label, double percentage, Color color, double grams) {
+    // Ensure percentage is a valid number
+    final displayPercentage = percentage.isNaN ? 0.0 : percentage;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -401,13 +404,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-            Text('${percentage.toStringAsFixed(1)}% (${grams.toStringAsFixed(1)}g)'),
+            Text('${displayPercentage.toStringAsFixed(1)}% (${grams.toStringAsFixed(1)}g)'),
           ],
         ),
         const SizedBox(height: 4),
         LinearPercentIndicator(
           lineHeight: 16.0,
-          percent: percentage / 100,
+          percent: (displayPercentage / 100).clamp(0.0, 1.0),
           backgroundColor: Colors.grey.shade200,
           progressColor: color,
           animation: true,
@@ -566,7 +569,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             },
           ),
           belowBarData: BarAreaData(
-            show: true,
+            show: false,
             color: (_nutrientColors[_selectedNutrient] ?? Colors.blue).withOpacity(0.2),
           ),
         ),
@@ -661,6 +664,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
       totalWater += amount;
     }
 
-    return totalWater / waterData.length;
+    // Calculate based on the total number of days in the date range
+    final int daysDifference = _endDate.difference(_startDate).inDays + 1;
+    return totalWater / daysDifference;
   }
 }
