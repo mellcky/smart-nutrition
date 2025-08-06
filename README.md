@@ -1,75 +1,49 @@
-# Smart Nutrition Tool APIs
+# Smart‑Nutrition 🍏
 
-This repository provides the APIs for the Smart Nutrition Tool, including a backend service that connects to a PostgreSQL database.
+**Smart‑Nutrition** is a modern mobile/web application that empowers users to effortlessly track their daily food intake, monitor nutrient consumption, receive meal-plan suggestions, and interact with an AI nutrition assistant for personalized guidance.
 
-## Prerequisites
+---
 
-- Docker: [Install Docker](https://docs.docker.com/get-docker/)
-- Docker Compose: [Install Docker Compose](https://docs.docker.com/compose/install/)
+## 🌟 Key Features
 
-## Getting Started
+- **Food Intake Logging**
+  - Upload photos of meals; integrated image recognition extracts food items and computes nutritional values.
+  - Supports both **speech‑to‑text** and **text input** powered by natural language processing.
 
-1. **Clone the repository**:
-    ```bash
-    git clone https://github.com/yourusername/smart-nutrition-tool.git
-    cd smart-nutrition-tool
-    ```
+- **AI Chat Assistance**
+  - Ask questions anytime about nutrition, meal planning, dietary guidelines, and receive intelligent, contextual responses.
 
-2. **Pull the Docker image**:
-    ```bash
-    docker pull mdsoln/smart-nutrition-tool-apis:latest
-    ```
+- **Meal‑Plan Recommendations**
+  - Personalized daily or weekly meal plans based on calories, macros, dietary goals, and food preferences.
 
-3. **Start the services**:
-    ```bash
-    cd api
-    docker-compose up
-    ```
+- **Nutrient Alerts & Reports**
+  - Real‑time nutrient analysis during food logging.
+  - Alerts for high sugar, sodium, or excessive calorie intake.
+  - Progress reports: Tracks goals and shows when milestones are achieved.
 
-    This will start:
-    - **Backend API**: `http://localhost:8080`
-    - **PostgreSQL**: `localhost:5432`
+---
 
-4. **Verify running services**:
-    ```bash
-    docker ps
-    ```
+## 🚀 Why It Matters
 
-5. **Stop the services**:
-    ```bash
-    docker-compose down
-    ```
+Smart‑Nutrition seamlessly combines **computer vision**, **NLP**, and **AI chat assistance** to simplify nutritional awareness. It helps users stay informed, alert, and motivated toward their wellness goals with minimal manual effort.
 
-## Checking the Database
+---
 
-To check the database and see the data:
+## 🛠️ Getting Started
 
-1. **Access PostgreSQL from a container**:
-    You can connect to the PostgreSQL container using the `psql` command-line tool. First, get the container ID or name:
-    ```bash
-    docker ps
-    ```
+### Prerequisites
 
-    Then, use the following command to access the PostgreSQL database:
-    ```bash
-    docker exec -it postgres psql -U postgres -d nutrition
-    ```
+- Flutter SDK environment  
+- Gemini backend dependencies  
+- Nutrition API credentials, if using external data sources
 
-2. **Query data in the database**:
-    After accessing the database, you can run SQL queries to check the data:
-    ```sql
-    SELECT * FROM your_table_name;
-    ```
+### Installation & Run
 
-    Replace `your_table_name` with the actual table you want to check.
 
-## Configuration
+git clone https://github.com/mellcky/smart‑nutrition.git
+cd smart‑nutrition
+# install frontend dependencies and backend dependencies
+flutter pub get
+# launch app & backend
+flutter run
 
-- **Database credentials**:
-  - `POSTGRES_USER`: `postgres`
-  - `POSTGRES_PASSWORD`: `mdsoln`
-  - `POSTGRES_DB`: `nutrition`
-
-## License
-
-[MIT License](LICENSE)
