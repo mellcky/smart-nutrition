@@ -1,6 +1,6 @@
 # Smart‑Nutrition 🍏
 
-**Smart‑Nutrition** is a modern mobile/web application that empowers users to effortlessly track their daily food intake, monitor nutrient consumption, receive meal-plan suggestions, and interact with an AI nutrition assistant for personalized guidance.
+**Smart‑Nutrition** is a modern mobile application that empowers users to effortlessly track their daily food intake, monitor nutrient consumption, receive meal-plan suggestions, and interact with an AI nutrition assistant for personalized guidance.
 
 ---
 
@@ -46,4 +46,5 @@ cd smart‑nutrition
 flutter pub get
 # launch app & backend
 flutter run
+
 
